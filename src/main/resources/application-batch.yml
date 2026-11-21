@@ -1,0 +1,12 @@
+# Rol BATCH: genera el informe mensual de presión (HU-11, RNF-09).
+# Lee de la réplica de analítica. No atiende tráfico web: Nginx nunca le envía peticiones.
+
+spring:
+  main:
+    web-application-type: none
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
+    username: ${DB_USUARIO:app_batch}
+    password: ${DB_CLAVE:batch}
+    hikari:
+      read-only: true

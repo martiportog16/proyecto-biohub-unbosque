@@ -1,0 +1,11 @@
+# Rol PÚBLICO: portal de consulta y API externa /v1.
+# Lee de Redis y de la réplica pública; nunca de la primaria (RNF-04, condición 1).
+# Su usuario de base de datos no tiene permisos sobre el esquema "protegido" (RNF-06).
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
+    username: ${DB_USUARIO:app_publico}
+    password: ${DB_CLAVE:publico}
+    hikari:
+      read-only: true

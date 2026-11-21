@@ -1,0 +1,45 @@
+# Configuración común a los tres roles (publico, cientifico, batch).
+# Cada valor sensible viene de una variable de entorno; el valor después de ":" es
+# solo para desarrollo local.
+
+spring:
+  application:
+    name: biohub
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
+    username: ${DB_USUARIO:biohub}
+    password: ${DB_CLAVE:biohub}
+    hikari:
+      maximum-pool-size: ${DB_POOL:10}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PUERTO:6379}
+  # Las migraciones solo las corre el rol científico (dueño de la primaria).
+  flyway:
+    enabled: false
+    placeholders:
+      clave_app_cientifico: ${DB_CLAVE_APP_CIENTIFICO:cientifico}
+      clave_app_publico: ${DB_CLAVE_APP_PUBLICO:publico}
+      clave_app_batch: ${DB_CLAVE_APP_BATCH:batch}
+
+server:
+  port: 8080
+  # Nginx pasa la IP real del cliente; la app confía en esos encabezados.
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

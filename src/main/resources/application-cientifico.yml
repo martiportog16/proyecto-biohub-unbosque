@@ -1,0 +1,17 @@
+# Rol CIENTÍFICO: registra hallazgos, reclasifica, consulta coordenadas.
+# Es el único rol que escribe en la base primaria (ADR-04) y el que corre las
+# migraciones con el usuario dueño de la base.
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
+    username: ${DB_USUARIO:app_cientifico}
+    password: ${DB_CLAVE:cientifico}
+  flyway:
+    enabled: true
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
+    user: ${FLYWAY_USUARIO:biohub}
+    password: ${FLYWAY_CLAVE:biohub}
+    # Cada módulo tiene su número de migración reservado y se integran en distinto orden
+    # (por ejemplo V6 puede llegar antes que V4). Esto permite aplicar las que falten.
+    out-of-order: true
