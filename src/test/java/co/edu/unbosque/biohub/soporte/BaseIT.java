@@ -70,6 +70,19 @@ public abstract class BaseIT {
         RestAssured.port = puerto;
     }
 
+    /** Clave de todos los usuarios de demostración (V2__usuarios.sql). */
+    protected static final String CLAVE_DEMO = "BioHub2026!";
+
+    /** Inicia sesión con un usuario de demostración y devuelve su token JWT. */
+    protected String tokenDe(String correo) {
+        return RestAssured.given()
+                .contentType("application/json")
+                .body(java.util.Map.of("correo", correo, "clave", CLAVE_DEMO))
+                .post("/api/cientifico/auth/login")
+                .then().statusCode(200)
+                .extract().path("token");
+    }
+
     private static String envODefecto(String nombre, String defecto) {
         String valor = System.getenv(nombre);
         return valor != null ? valor : defecto;
