@@ -78,6 +78,7 @@ services:
       DB_CLAVE_APP_CIENTIFICO: ${DB_CLAVE_APP_CIENTIFICO:-cientifico_cambiar}
       DB_CLAVE_APP_PUBLICO: ${DB_CLAVE_APP_PUBLICO:-publico_cambiar}
       DB_CLAVE_APP_BATCH: ${DB_CLAVE_APP_BATCH:-batch_cambiar}
+      JWT_SECRETO: ${JWT_SECRETO:-cambiar-este-secreto-de-al-menos-32-caracteres}
       REDIS_HOST: redis
     depends_on:
       postgres-primaria:
@@ -94,6 +95,7 @@ services:
       DB_URL: jdbc:postgresql://postgres-replica-publica:5432/biohub
       DB_USUARIO: app_publico
       DB_CLAVE: ${DB_CLAVE_APP_PUBLICO:-publico_cambiar}
+      JWT_SECRETO: ${JWT_SECRETO:-cambiar-este-secreto-de-al-menos-32-caracteres}
       REDIS_HOST: redis
     depends_on:
       - postgres-replica-publica
