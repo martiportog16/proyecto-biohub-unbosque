@@ -1,0 +1,131 @@
+# BioHub: infraestructura como código (S26).
+# Un solo comando levanta todo:   docker compose up --build
+# Solo Nginx publica un puerto hacia afuera (RNF-07): todo lo demás vive en la red interna.
+
+x-app: &app
+  build: .
+  image: biohub:local
+  restart: unless-stopped
+
+x-postgres: &postgres
+  image: postgres:16
+  restart: unless-stopped
+
+services:
+
+  # ---------- Datos ----------
+  postgres-primaria:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: biohub
+      POSTGRES_USER: ${DB_DUENO:-biohub}
+      POSTGRES_PASSWORD: ${DB_CLAVE_DUENO:-biohub_dueno}
+      CLAVE_REPLICADOR: ${DB_CLAVE_REPLICADOR:-replicador_cambiar}
+    volumes:
+      - datos-primaria:/var/lib/postgresql/data
+      - ./infra/postgres/primaria-init.sh:/docker-entrypoint-initdb.d/01-replicacion.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_DUENO:-biohub} -d biohub"]
+      interval: 5s
+      retries: 20
+
+  postgres-replica-publica:
+    <<: *postgres
+    entrypoint: ["/bin/bash", "/replica-entrypoint.sh"]
+    environment:
+      PRIMARIA_HOST: postgres-primaria
+      SLOT: replica_publica
+      CLAVE_REPLICADOR: ${DB_CLAVE_REPLICADOR:-replicador_cambiar}
+      POSTGRES_PASSWORD: no-se-usa-en-replica
+    volumes:
+      - datos-replica-publica:/var/lib/postgresql/data
+      - ./infra/postgres/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    depends_on:
+      postgres-primaria:
+        condition: service_healthy
+
+  postgres-replica-analitica:
+    <<: *postgres
+    entrypoint: ["/bin/bash", "/replica-entrypoint.sh"]
+    environment:
+      PRIMARIA_HOST: postgres-primaria
+      SLOT: replica_analitica
+      CLAVE_REPLICADOR: ${DB_CLAVE_REPLICADOR:-replicador_cambiar}
+      POSTGRES_PASSWORD: no-se-usa-en-replica
+    volumes:
+      - datos-replica-analitica:/var/lib/postgresql/data
+      - ./infra/postgres/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    depends_on:
+      postgres-primaria:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  # ---------- Aplicación: un artefacto, tres roles ----------
+  app-cientifico:
+    <<: *app
+    deploy:
+      replicas: 2          # T-10: redundancia activa del grupo científico
+    environment:
+      SPRING_PROFILES_ACTIVE: cientifico
+      DB_URL: jdbc:postgresql://postgres-primaria:5432/biohub
+      DB_USUARIO: app_cientifico
+      DB_CLAVE: ${DB_CLAVE_APP_CIENTIFICO:-cientifico_cambiar}
+      FLYWAY_USUARIO: ${DB_DUENO:-biohub}
+      FLYWAY_CLAVE: ${DB_CLAVE_DUENO:-biohub_dueno}
+      DB_CLAVE_APP_CIENTIFICO: ${DB_CLAVE_APP_CIENTIFICO:-cientifico_cambiar}
+      DB_CLAVE_APP_PUBLICO: ${DB_CLAVE_APP_PUBLICO:-publico_cambiar}
+      DB_CLAVE_APP_BATCH: ${DB_CLAVE_APP_BATCH:-batch_cambiar}
+      REDIS_HOST: redis
+    depends_on:
+      postgres-primaria:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  app-publico:
+    <<: *app
+    deploy:
+      replicas: 2          # T-05: escalado horizontal del grupo público
+    environment:
+      SPRING_PROFILES_ACTIVE: publico
+      DB_URL: jdbc:postgresql://postgres-replica-publica:5432/biohub
+      DB_USUARIO: app_publico
+      DB_CLAVE: ${DB_CLAVE_APP_PUBLICO:-publico_cambiar}
+      REDIS_HOST: redis
+    depends_on:
+      - postgres-replica-publica
+      - redis
+      - app-cientifico
+
+  batch:
+    <<: *app
+    environment:
+      SPRING_PROFILES_ACTIVE: batch
+      DB_URL: jdbc:postgresql://postgres-replica-analitica:5432/biohub
+      DB_USUARIO: app_batch
+      DB_CLAVE: ${DB_CLAVE_APP_BATCH:-batch_cambiar}
+      REDIS_HOST: redis
+    depends_on:
+      - postgres-replica-analitica
+      - app-cientifico
+
+  # ---------- Punto de entrada único (RNF-07, ADR-09) ----------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${PUERTO_BIOHUB:-8080}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/html:/usr/share/nginx/html:ro
+    depends_on:
+      - app-publico
+      - app-cientifico
+
+volumes:
+  datos-primaria:
+  datos-replica-publica:
+  datos-replica-analitica:
