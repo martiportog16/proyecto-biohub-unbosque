@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.InvalidadorCachePublica;
 import co.edu.unbosque.biohub.aplicacion.fichas.VistasFichas.NuevaEspecie;
 import co.edu.unbosque.biohub.aplicacion.fichas.VistasFichas.NuevoAtributo;
 import co.edu.unbosque.biohub.aplicacion.fichas.VistasFichas.VistaEspecie;
@@ -29,10 +30,13 @@ public class ServicioFichas {
 
     private final RepositorioFichas repositorio;
     private final CatalogoValidadores catalogo;
+    private final InvalidadorCachePublica cachePublica;
 
-    public ServicioFichas(RepositorioFichas repositorio, CatalogoValidadores catalogo) {
+    public ServicioFichas(RepositorioFichas repositorio, CatalogoValidadores catalogo,
+                          InvalidadorCachePublica cachePublica) {
         this.repositorio = repositorio;
         this.catalogo = catalogo;
+        this.cachePublica = cachePublica;
     }
 
     public List<VistaEspecie> especies() {
@@ -57,6 +61,7 @@ public class ServicioFichas {
         FichaTaxonomica ficha = traducir(() ->
                 FichaTaxonomica.inicial(id, atributos.stream().map(this::aDefinicion).toList()));
         repositorio.guardarVersion(ficha, autorId);
+        cachePublica.fichaCambio(id);
         return VistaFicha.de(ficha);
     }
 
@@ -64,6 +69,7 @@ public class ServicioFichas {
     public VistaFicha agregarAtributo(long especieId, NuevoAtributo atributo, long autorId) {
         FichaTaxonomica nueva = traducir(() -> vigente(especieId).conAtributo(aDefinicion(atributo)));
         repositorio.guardarVersion(nueva, autorId);
+        cachePublica.fichaCambio(especieId);
         return VistaFicha.de(nueva);
     }
 
@@ -71,6 +77,7 @@ public class ServicioFichas {
     public VistaFicha retirarAtributo(long especieId, String nombre, long autorId) {
         FichaTaxonomica nueva = traducir(() -> vigente(especieId).sinAtributo(nombre));
         repositorio.guardarVersion(nueva, autorId);
+        cachePublica.fichaCambio(especieId);
         return VistaFicha.de(nueva);
     }
 
