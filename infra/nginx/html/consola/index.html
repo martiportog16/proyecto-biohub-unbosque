@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BioHub · Consola científica</title>
+  <!--
+    Interfaz científica (Entregable 2: "Portal público · API externa · interfaz científica").
+    Página estática servida por Nginx. Solo llama a /api/cientifico/**, que Nginx envía
+    al grupo científico. Todo el control de permisos lo hace el backend: el menú por rol
+    es solo comodidad, no seguridad (un 403 del backend siempre manda).
+
+    Cada pantalla es un archivo en js/modulos/ que se registra solo (BioHub.registrar).
+    Para agregar una pantalla: crear el archivo y agregar su <script> antes de app.js.
+  -->
+  <link rel="stylesheet" href="css/consola.css">
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <!-- Pantalla de inicio de sesión -->
+  <section id="pantalla-login" class="login" hidden>
+    <div class="login-caja">
+      <h1>BioHub</h1>
+      <p class="suave">Consola científica del Instituto</p>
+      <form id="form-login" novalidate>
+        <label for="correo">Correo institucional</label>
+        <input id="correo" name="correo" type="email" autocomplete="username" required>
+        <label for="clave">Clave</label>
+        <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+        <div id="login-error" aria-live="assertive"></div>
+        <button type="submit" class="primario">Entrar</button>
+      </form>
+      <details class="demo">
+        <summary>Usuarios de demostración</summary>
+        <p>Todos con la clave <code>BioHub2026!</code></p>
+        <ul id="usuarios-demo"></ul>
+      </details>
+      <p class="suave pequeno"><a href="/">Ir al portal público</a></p>
+    </div>
+  </section>
+
+  <!-- Consola, una vez dentro -->
+  <div id="pantalla-consola" class="consola" hidden>
+    <header class="barra">
+      <button id="boton-menu" class="boton-menu" aria-expanded="false" aria-controls="menu">Menú</button>
+      <a class="marca" href="#/inicio">BioHub <span>consola científica</span></a>
+      <div class="quien">
+        <span id="nombre-usuario"></span>
+        <span id="rol-usuario" class="chip"></span>
+        <button id="boton-salir" class="secundario pequeno">Salir</button>
+      </div>
+    </header>
+    <nav id="menu" class="menu" aria-label="Opciones de su rol"></nav>
+    <main id="contenido" tabindex="-1"></main>
+  </div>
+
+  <div id="avisos" class="avisos" aria-live="polite"></div>
+
+  <script src="js/nucleo.js"></script>
+  <script src="js/modulos/inicio.js"></script>
+  <script src="js/modulos/informes.js"></script>
+  <!-- Las pantallas de los paquetes 18, 19 y 20 se agregan aquí -->
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -41,6 +41,7 @@ Luego abrir:
 | Qué | Dirección |
 | --- | --- |
 | Portal público | http://localhost:8080 |
+| **Consola científica** (personal del Instituto) | http://localhost:8080/consola/ |
 | Estado del grupo público | http://localhost:8080/api/publico/estado |
 | Estado del grupo científico | http://localhost:8080/api/cientifico/estado |
 | Documentación de la API (Swagger) | http://localhost:8080/swagger-ui.html |
@@ -80,6 +81,12 @@ mvn verify
 - `*Test.java` = pruebas unitarias y de arquitectura (`mvn test`).
 - `*IT.java` = pruebas de integración (`mvn verify`).
 - Reporte de cobertura: `target/site/jacoco/index.html`.
+
+### Pruebas en navegador (con `docker compose up -d`; no hay que instalar Node)
+
+```bash
+./scripts/pruebas-ui.sh               # abre un Chrome real y usa la consola con cada rol
+```
 
 ### Pruebas de disponibilidad y red (con `docker compose up -d`)
 
