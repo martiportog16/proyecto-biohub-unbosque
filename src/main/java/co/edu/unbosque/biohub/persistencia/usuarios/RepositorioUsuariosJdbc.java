@@ -2,6 +2,7 @@ package co.edu.unbosque.biohub.persistencia.usuarios;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -11,7 +12,7 @@ import co.edu.unbosque.biohub.dominio.usuarios.Rol;
 import co.edu.unbosque.biohub.dominio.usuarios.Usuario;
 
 @Repository
-public class RepositorioUsuariosJdbc implements RepositorioUsuarios {
+public class RepositorioUsuariosJdbc implements RepositorioUsuarios, DirectorioPersonal {
 
     private static final String COLUMNAS = "id, correo, nombre, clave_hash, rol, activo";
 
@@ -35,6 +36,13 @@ public class RepositorioUsuariosJdbc implements RepositorioUsuarios {
                 .param("id", id)
                 .query(this::mapear)
                 .optional();
+    }
+
+    @Override
+    public List<Usuario> activos() {
+        return jdbc.sql("SELECT " + COLUMNAS + " FROM usuario WHERE activo ORDER BY nombre")
+                .query(this::mapear)
+                .list();
     }
 
     private Usuario mapear(ResultSet rs, int fila) throws SQLException {
