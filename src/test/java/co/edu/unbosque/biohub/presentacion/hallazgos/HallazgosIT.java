@@ -50,6 +50,17 @@ class HallazgosIT extends BaseIT {
     }
 
     @Test
+    void losDepartamentosSonLos33EnOrdenAlfabetico() {
+        given().auth().oauth2(investigador).get("/api/cientifico/hallazgos/departamentos")
+        .then()
+            .statusCode(200)
+            .body("size()", org.hamcrest.Matchers.equalTo(33))
+            .body("[0]", org.hamcrest.Matchers.equalTo("Amazonas"))
+            .body("[4]", org.hamcrest.Matchers.equalTo("Bogotá D.C."))
+            .body("[32]", org.hamcrest.Matchers.equalTo("Vichada"));
+    }
+
+    @Test
     void elInvestigadorRegistraYLaCoordenadaQuedaEnElEsquemaProtegido() {
         int id = registrar(hallazgoValido(Map.of("numero_individuos", 4)));
 

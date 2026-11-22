@@ -118,7 +118,9 @@
   async function navegar() {
     const s = sesion.actual();
     if (!s) { mostrarLogin(); return; }
-    const [id, ...parametros] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+    // Lo que va después de "?" son filtros que lee la pantalla misma (#/hallazgos?especie=3)
+    const ruta = location.hash.replace(/^#\/?/, '').split('?')[0];
+    const [id, ...parametros] = ruta.split('/').map(decodeURIComponent);
     const modulo = modulos.find((m) => m.id === (id || 'inicio'));
 
     menu.classList.remove('abierto');

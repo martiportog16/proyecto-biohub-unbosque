@@ -2,9 +2,11 @@ package co.edu.unbosque.biohub.aplicacion.hallazgos;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import co.edu.unbosque.biohub.aplicacion.hallazgos.VistasHallazgos.VistaHallazgo
 import co.edu.unbosque.biohub.dominio.fichas.FichaTaxonomica;
 import co.edu.unbosque.biohub.dominio.fichas.validacion.CatalogoValidadores;
 import co.edu.unbosque.biohub.dominio.hallazgos.Coordenada;
+import co.edu.unbosque.biohub.dominio.hallazgos.Departamentos;
 import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
 import co.edu.unbosque.biohub.persistencia.coordenadas.EscrituraCoordenadas;
 import co.edu.unbosque.biohub.persistencia.fichas.RepositorioFichas;
@@ -114,5 +117,11 @@ public class ServicioRegistroHallazgos {
             });
         }
         return limpio;
+    }
+
+    /** Los 33 departamentos válidos, en orden alfabético español (para la lista de selección). */
+    public List<String> departamentos() {
+        Collator orden = Collator.getInstance(Locale.forLanguageTag("es-CO"));
+        return Departamentos.TODOS.stream().sorted(orden).toList();
     }
 }

@@ -82,6 +82,18 @@ class FichasIT extends BaseIT {
     }
 
     @Test
+    void unaEspecieSinNombresResponde422ConTodosLosMotivosYNoUnErrorDelServidor() {
+        // Antes esto llegaba a la base sin nombre común y respondía 500 (lo encontró la prueba de la consola)
+        given().auth().oauth2(admin).contentType("application/json")
+            .body(java.util.Map.of("nombreCientifico", "  ", "enPeligro", false, "atributos", java.util.List.of()))
+            .post("/api/cientifico/especies")
+        .then()
+            .statusCode(422)
+            .body("detalles", org.hamcrest.Matchers.containsInAnyOrder(
+                    "nombreCientifico: es obligatorio", "nombreComun: es obligatorio"));
+    }
+
+    @Test
     void lasEspeciesDeDemostracionTienenSuFicha() {
         given().auth().oauth2(admin)
             .get("/api/cientifico/especies")
