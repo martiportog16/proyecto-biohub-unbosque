@@ -53,20 +53,34 @@ public class ServicioFichas {
 
     @Transactional
     public VistaFicha crearEspecie(NuevaEspecie datos, long autorId) {
-        if (datos.nombreCientifico() == null || datos.nombreCientifico().isBlank()) {
-            throw new ReglaDeNegocioException("La especie no es válida", List.of("nombreCientifico: es obligatorio"));
+        // Todos los errores juntos, para corregir de una vez. El nombre común es obligatorio
+        // porque es lo primero que lee un visitante en el portal (RNF-10).
+        List<String> errores = new java.util.ArrayList<>();
+        validarNombre("nombreCientifico", datos.nombreCientifico(), errores);
+        validarNombre("nombreComun", datos.nombreComun(), errores);
+        if (errores.isEmpty() && repositorio.existeNombreCientifico(datos.nombreCientifico().trim())) {
+            errores.add("nombreCientifico: ya existe '" + datos.nombreCientifico().trim() + "'");
         }
-        if (repositorio.existeNombreCientifico(datos.nombreCientifico())) {
-            throw new ReglaDeNegocioException("La especie no es válida",
-                    List.of("nombreCientifico: ya existe '" + datos.nombreCientifico() + "'"));
+        if (!errores.isEmpty()) {
+            throw new ReglaDeNegocioException("La especie no es válida", errores);
         }
-        long id = repositorio.crearEspecie(datos.nombreCientifico(), datos.nombreComun(), datos.enPeligro());
+        long id = repositorio.crearEspecie(datos.nombreCientifico().trim(), datos.nombreComun().trim(), datos.enPeligro());
         List<NuevoAtributo> atributos = datos.atributos() == null ? List.of() : datos.atributos();
         FichaTaxonomica ficha = traducir(() ->
                 FichaTaxonomica.inicial(id, atributos.stream().map(ServicioFichas::aDefinicion).toList()));
         repositorio.guardarVersion(ficha, autorId);
         cachePublica.fichaCambio(id);
         return VistaFicha.de(ficha);
+    }
+
+    private static final int LARGO_MAXIMO_NOMBRE = 150;
+
+    private static void validarNombre(String campo, String valor, List<String> errores) {
+        if (valor == null || valor.isBlank()) {
+            errores.add(campo + ": es obligatorio");
+        } else if (valor.trim().length() > LARGO_MAXIMO_NOMBRE) {
+            errores.add(campo + ": no puede tener más de " + LARGO_MAXIMO_NOMBRE + " caracteres");
+        }
     }
 
     @Transactional

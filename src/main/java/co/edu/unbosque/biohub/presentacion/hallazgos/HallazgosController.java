@@ -46,6 +46,12 @@ public class HallazgosController {
         return servicio.registrar(datos, UsuarioActual.de(token).id());
     }
 
+    @GetMapping("/departamentos")
+    @Operation(summary = "Departamentos válidos", description = "La misma lista con que se valida el registro.")
+    public List<String> departamentos() {
+        return servicio.departamentos();
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Consultar un hallazgo (sin coordenadas exactas)")
     public VistaHallazgo consultar(@PathVariable long id) {
