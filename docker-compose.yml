@@ -6,10 +6,22 @@ x-app: &app
   build: .
   image: biohub:local
   restart: unless-stopped
+  # T-11: Docker pregunta cada 10 s si la instancia puede atender (base de datos incluida).
+  # Tres fallas seguidas = "unhealthy". Lo muestra `docker compose ps` y scripts/estado-salud.sh.
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/actuator/health/readiness"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    start_period: 90s
 
 x-postgres: &postgres
   image: postgres:16
   restart: unless-stopped
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -h localhost -d biohub"]
+    interval: 5s
+    retries: 20
 
 services:
 
@@ -24,10 +36,6 @@ services:
     volumes:
       - datos-primaria:/var/lib/postgresql/data
       - ./infra/postgres/primaria-init.sh:/docker-entrypoint-initdb.d/01-replicacion.sh:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_DUENO:-biohub} -d biohub"]
-      interval: 5s
-      retries: 20
 
   postgres-replica-publica:
     <<: *postgres
@@ -62,6 +70,10 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
 
   # ---------- Aplicación: un artefacto, tres roles ----------
   app-cientifico:
@@ -85,7 +97,7 @@ services:
       postgres-primaria:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
   app-publico:
     <<: *app
@@ -99,9 +111,12 @@ services:
       JWT_SECRETO: ${JWT_SECRETO:-cambiar-este-secreto-de-al-menos-32-caracteres}
       REDIS_HOST: redis
     depends_on:
-      - postgres-replica-publica
-      - redis
-      - app-cientifico
+      postgres-replica-publica:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app-cientifico:              # espera a que Flyway termine las migraciones
+        condition: service_healthy
 
   batch:
     <<: *app
@@ -114,10 +129,16 @@ services:
       DB_USUARIO: app_batch
       DB_CLAVE: ${DB_CLAVE_APP_BATCH:-batch_cambiar}
       REDIS_HOST: redis
+    # El batch no atiende web (no tiene /actuator): Docker solo vigila que el proceso siga vivo.
+    healthcheck:
+      disable: true
     depends_on:
-      - postgres-replica-analitica
-      - postgres-primaria
-      - app-cientifico
+      postgres-replica-analitica:
+        condition: service_healthy
+      postgres-primaria:
+        condition: service_healthy
+      app-cientifico:
+        condition: service_healthy
 
   # ---------- Punto de entrada único (RNF-07, ADR-09) ----------
   nginx:
@@ -128,9 +149,16 @@ services:
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infra/nginx/html:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/"]
+      interval: 10s
+      retries: 3
+    # Nginx averigua las direcciones de las instancias al arrancar: que estén listas antes
     depends_on:
-      - app-publico
-      - app-cientifico
+      app-publico:
+        condition: service_healthy
+      app-cientifico:
+        condition: service_healthy
 
 volumes:
   datos-primaria:
