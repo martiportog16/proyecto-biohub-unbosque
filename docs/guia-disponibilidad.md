@@ -38,8 +38,11 @@ El script:
 
 **Lo que hubo que ajustar para llegar a 0 errores** (está en `infra/nginx/nginx.conf`):
 
-- **`max_fails=1 fail_timeout=15s`:** a la primera falla, Nginx saca la instancia de la rotación 15 s.
-- **`proxy_connect_timeout 1s`:** en la red interna conectar tarda milisegundos. Si en 1 s no conecta, la instancia está caída.
+- **`max_fails=1 fail_timeout=15s`, solo en el grupo científico:** a la primera falla, Nginx saca la instancia de la rotación 15 s.
+    - El grupo **público** usa `max_fails=3 fail_timeout=5s`, más tolerante.
+    - Se descubrió en la prueba de carga (paquete 13): con `max_fails=1` en el público, una respuesta lenta suelta durante el pico de 300 peticiones/s sacaba las **dos** instancias y Nginx respondía 502 al 18 % de las peticiones.
+    - Con el ajuste: 0 %.
+- **`proxy_connect_timeout 1s` en `/api/cientifico/`:** en la red interna conectar tarda milisegundos. Si en 1 s no conecta, la instancia está caída. El resto usa 2 s.
 - **Reintentar POST, pero con límite:**
     - Por defecto Nginx **no** reintenta un POST que ya envió, porque podría guardar el hallazgo dos veces.
     - En las primeras pruebas eso dejó 1 error (502) de unos 3500 registros: una petición que llegó justo cuando la instancia se apagaba.
