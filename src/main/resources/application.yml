@@ -28,6 +28,9 @@ biohub:
     # Debe ser igual en todas las instancias y tener al menos 32 caracteres.
     secreto: ${JWT_SECRETO:solo-para-desarrollo-cambiar-en-produccion-2026}
     duracion-minutos: 60
+  # Vida de cada respuesta en la caché del portal público (P-14: dato nuevo visible en ≤ 5 s)
+  cache:
+    vida-segundos: ${CACHE_VIDA_SEGUNDOS:3}
 
 server:
   port: 8080
