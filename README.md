@@ -49,6 +49,15 @@ Para apagar todo: `docker compose down`. Para borrar también los datos: `docker
 
 ## Cómo correr las pruebas
 
+**No hace falta instalar Maven:** el proyecto trae el Maven Wrapper, que lo descarga solo la primera vez. Solo se necesitan **Java 21** y **Docker**.
+
+| Dónde | Comando |
+| --- | --- |
+| Windows (CMD o PowerShell) | `mvnw.cmd verify` |
+| Git Bash, macOS o Linux | `./mvnw verify` |
+
+En los ejemplos de abajo, `mvn` se puede cambiar por cualquiera de los dos.
+
 Las pruebas de integración usan **PostgreSQL real**, nunca H2 (S21).
 
 ```bash
@@ -75,6 +84,16 @@ mvn verify
 ```
 
 Qué hace cada una, los resultados medidos y qué hacer si algo se cae: [`docs/guia-disponibilidad.md`](docs/guia-disponibilidad.md).
+
+### Pruebas de carga (con `docker compose up -d`; no hay que instalar k6)
+
+```bash
+./scripts/carga.sh pico-publico       # PR-02 y PR-03: 300 peticiones/s al portal mientras se registra (5 min)
+./scripts/sembrar-millon.sh           # 1 millón de hallazgos
+./scripts/prueba-pr13.sh              # PR-13: el batch no frena el registro
+```
+
+Resultados y cómo leerlos: [`docs/guia-pruebas-carga.md`](docs/guia-pruebas-carga.md).
 
 ## Forma de trabajo en Git
 
