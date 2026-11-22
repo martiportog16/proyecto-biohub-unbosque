@@ -1,27 +1,48 @@
 package co.edu.unbosque.biohub.configuracion;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import co.edu.unbosque.biohub.aplicacion.analitica.ProcesoInformes;
+
 /**
- * Activa las tareas programadas SOLO en el rol batch (T-22, T-24).
+ * Las tareas programadas del proceso batch (T-22, T-24, P-11).
+ * Solo existen con el perfil "batch": los grupos público y científico nunca
+ * generan informes (HU-11, criterio 2).
  *
- * El "latido" mantiene vivo el proceso batch mientras no hay informes que generar.
- * El paquete de analítica (Karen, HU-11) agrega aquí la tarea mensual.
+ * Spring ejecuta estas tareas en un solo hilo, una tras otra: nunca se generan
+ * dos informes a la vez.
  */
 @Configuration
 @Profile("batch")
 @EnableScheduling
 public class ProgramacionBatchConfig {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProgramacionBatchConfig.class);
+    private final ProcesoInformes proceso;
 
-    @Scheduled(fixedRate = 3_600_000, initialDelay = 0)
-    void latido() {
-        LOG.info("Proceso batch activo, esperando la próxima ejecución programada");
+    public ProgramacionBatchConfig(ProcesoInformes proceso) {
+        this.proceso = proceso;
+    }
+
+    /** El día 1 de cada mes a las 2:00 a. m., hora de Colombia: informe del mes que terminó. */
+    @Scheduled(cron = "${biohub.batch.cron-mensual:0 0 2 1 * *}", zone = "America/Bogota")
+    void informeMensual() {
+        proceso.generarMesAnterior();
+    }
+
+    /** Cada 30 s: ¿el analista pidió algún informe? (se atiende en menos de 1 minuto). */
+    @Scheduled(fixedDelayString = "${biohub.batch.revisar-solicitudes-ms:30000}",
+               initialDelayString = "${biohub.batch.espera-inicial-ms:20000}")
+    void solicitudesDelAnalista() {
+        proceso.atenderSolicitudes();
+    }
+
+    /** Al arrancar y cada hora: si el batch estuvo apagado el día 1, genera el informe que faltó. */
+    @Scheduled(fixedRateString = "${biohub.batch.ponerse-al-dia-ms:3600000}",
+               initialDelayString = "${biohub.batch.espera-inicial-ms:20000}")
+    void ponerseAlDia() {
+        proceso.ponerseAlDia();
     }
 }
