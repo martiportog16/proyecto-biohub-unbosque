@@ -41,6 +41,7 @@ Luego abrir:
 | Qué | Dirección |
 | --- | --- |
 | Portal público | http://localhost:8080 |
+| **Consola científica** (personal del Instituto) | http://localhost:8080/consola/ |
 | Estado del grupo público | http://localhost:8080/api/publico/estado |
 | Estado del grupo científico | http://localhost:8080/api/cientifico/estado |
 | Documentación de la API (Swagger) | http://localhost:8080/swagger-ui.html |
