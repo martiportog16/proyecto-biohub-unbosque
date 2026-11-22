@@ -129,3 +129,8 @@ tr.clic:hover td { background: var(--fondo); }
 .migas { font-size: .88rem; margin-bottom: 8px; }
 .avisos { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 20; max-width: 360px; }
 .avisos .mensaje { box-shadow: var(--sombra); margin: 0; border: 1px solid var(--borde); }
+
+/* Errores junto a cada campo (paquete 18) */
+.error-campo { color: var(--alerta); font-weight: 600; }
+[aria-invalid=true] { border-color: var(--alerta); }
+a.boton.secundario { background: transparent; color: var(--marca); border-color: var(--borde); }
