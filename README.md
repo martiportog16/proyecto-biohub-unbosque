@@ -45,6 +45,12 @@ Luego abrir:
 | Estado del grupo científico | http://localhost:8080/api/cientifico/estado |
 | Documentación de la API (Swagger) | http://localhost:8080/swagger-ui.html |
 
+`docker compose up` espera a que cada parte esté **sana** antes de arrancar la siguiente (T-11): primero la base y Redis, luego el grupo científico (que corre las migraciones), luego el público y el batch, y al final Nginx. Para ver la salud de todo:
+
+```bash
+./scripts/estado-salud.sh        # contenedores, atraso de las réplicas y servicios por Nginx
+```
+
 Para apagar todo: `docker compose down`. Para borrar también los datos: `docker compose down -v`.
 
 ## Cómo correr las pruebas
@@ -81,6 +87,7 @@ mvn verify
 ./scripts/prueba-caida-instancia.sh   # PR-04: se apaga una instancia y el registro no falla
 ./scripts/verificar-red.sh            # PR-10: desde afuera solo responde Nginx
 ./scripts/promover-replica.sh         # PR-05: si se cae la primaria (¡apaga la primaria actual!)
+./scripts/estado-salud.sh             # T-11: salud de cada contenedor y atraso de las réplicas
 ```
 
 Qué hace cada una, los resultados medidos y qué hacer si algo se cae: [`docs/guia-disponibilidad.md`](docs/guia-disponibilidad.md).
@@ -132,3 +139,5 @@ Para que nadie choque con el número de versión de Flyway:
 | V5 | Accesos a coordenadas | Martin |
 | V6 | Consumidores externos | Martin |
 | V7 | Informes mensuales | Daniel |
+| V8 | Grupos taxonómicos y fichas por grupo | Daniel |
+| V9 | Equipos de campo | Daniel |

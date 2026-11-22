@@ -65,4 +65,32 @@ class InvalidadorCachePublicaTest {
 
         assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isTrue();
     }
+
+    @Test
+    void cuandoCambianHallazgosBorraSoloLasFichasDeEsasEspecies() {
+        llenarCache();
+
+        invalidador.hallazgosCambiaron(7L, 8L, 7L);
+
+        assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isFalse();
+        assertThat(cache.contiene(LectorPublico.claveFicha(8L))).isFalse();
+        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado no tiene conteos").isTrue();
+    }
+
+    @Test
+    void borraOtraVezUnMomentoDespuesPorSiLaReplicaIbaAtrasada() throws InterruptedException {
+        InvalidadorCachePublica conSegundoBorrado = new InvalidadorCachePublica(cache, 100);
+
+        conSegundoBorrado.hallazgosCambiaron(7L);
+        // Una consulta pública leyó la réplica todavía vieja y volvió a guardar la ficha
+        cache.guardar(LectorPublico.claveFicha(7L), "ficha vieja otra vez", Duration.ofMinutes(1));
+        assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isTrue();
+
+        long limite = System.nanoTime() + Duration.ofSeconds(3).toNanos();
+        while (cache.contiene(LectorPublico.claveFicha(7L)) && System.nanoTime() < limite) {
+            Thread.sleep(20);
+        }
+        assertThat(cache.contiene(LectorPublico.claveFicha(7L))).as("el segundo borrado la quitó").isFalse();
+        conSegundoBorrado.detener();
+    }
 }

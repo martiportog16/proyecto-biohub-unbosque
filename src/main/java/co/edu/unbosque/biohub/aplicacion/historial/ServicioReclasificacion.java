@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.unbosque.biohub.aplicacion.comun.ConflictoException;
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.InvalidadorCachePublica;
 import co.edu.unbosque.biohub.aplicacion.historial.VistasHistorial.NuevaReclasificacion;
 import co.edu.unbosque.biohub.aplicacion.historial.VistasHistorial.VistaReclasificacion;
 import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
@@ -38,14 +39,17 @@ public class ServicioReclasificacion {
     private final RepositorioFichas fichas;
     private final NombresHistorial nombres;
     private final Clock reloj;
+    private final InvalidadorCachePublica cachePublica;
 
     public ServicioReclasificacion(RepositorioHallazgos hallazgos, RepositorioHistorial historial,
-                                   RepositorioFichas fichas, NombresHistorial nombres, Clock reloj) {
+                                   RepositorioFichas fichas, NombresHistorial nombres, Clock reloj,
+                                   InvalidadorCachePublica cachePublica) {
         this.hallazgos = hallazgos;
         this.historial = historial;
         this.fichas = fichas;
         this.nombres = nombres;
         this.reloj = reloj;
+        this.cachePublica = cachePublica;
     }
 
     @Transactional
@@ -69,6 +73,9 @@ public class ServicioReclasificacion {
         long id = historial.registrar(nueva)
                 .orElseThrow(() -> new ConflictoException(
                         "Otra persona reclasificó este hallazgo al mismo tiempo. Consulta el historial y vuelve a intentarlo."));
+
+        // Secuencia 3, pasos 20 y 21: el hallazgo sale de la ficha pública de una especie y entra en la de otra
+        cachePublica.hallazgosCambiaron(nueva.especieAnteriorId(), nueva.especieNuevaId());
 
         return nombres.traductor().vista(new Reclasificacion(id, nueva.hallazgoId(), nueva.especieAnteriorId(),
                 nueva.especieNuevaId(), nueva.motivo(), nueva.autorId(), nueva.realizadaEn()));

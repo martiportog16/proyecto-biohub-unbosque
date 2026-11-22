@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.InvalidadorCachePublica;
 import co.edu.unbosque.biohub.aplicacion.hallazgos.VistasHallazgos.NuevoHallazgo;
 import co.edu.unbosque.biohub.aplicacion.hallazgos.VistasHallazgos.VistaHallazgo;
 import co.edu.unbosque.biohub.dominio.fichas.FichaTaxonomica;
@@ -41,14 +42,17 @@ public class ServicioRegistroHallazgos {
     private final EscrituraCoordenadas coordenadas;
     private final CatalogoValidadores catalogo;
     private final Clock reloj;
+    private final InvalidadorCachePublica cachePublica;
 
     public ServicioRegistroHallazgos(RepositorioHallazgos hallazgos, RepositorioFichas fichas,
-                                     EscrituraCoordenadas coordenadas, CatalogoValidadores catalogo, Clock reloj) {
+                                     EscrituraCoordenadas coordenadas, CatalogoValidadores catalogo, Clock reloj,
+                                     InvalidadorCachePublica cachePublica) {
         this.hallazgos = hallazgos;
         this.fichas = fichas;
         this.coordenadas = coordenadas;
         this.catalogo = catalogo;
         this.reloj = reloj;
+        this.cachePublica = cachePublica;
     }
 
     @Transactional
@@ -81,6 +85,8 @@ public class ServicioRegistroHallazgos {
                 datos.fechaObservacion(), datos.departamento(), investigadorId, null);
         long id = hallazgos.guardar(nuevo);
         coordenadas.guardar(id, coordenada);
+        // Secuencia 1, paso 18: la ficha pública cuenta hallazgos por departamento
+        cachePublica.hallazgosCambiaron(datos.especieId());
 
         return consultar(id);
     }

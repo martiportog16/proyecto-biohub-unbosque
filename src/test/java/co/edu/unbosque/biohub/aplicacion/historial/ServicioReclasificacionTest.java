@@ -1,5 +1,6 @@
 package co.edu.unbosque.biohub.aplicacion.historial;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -31,6 +32,9 @@ import co.edu.unbosque.biohub.persistencia.fichas.RepositorioFichas;
 import co.edu.unbosque.biohub.persistencia.hallazgos.RepositorioHallazgos;
 import co.edu.unbosque.biohub.persistencia.historial.RepositorioHistorial;
 import co.edu.unbosque.biohub.persistencia.usuarios.RepositorioUsuarios;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.InvalidadorCachePublica;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.LectorPublico;
+import co.edu.unbosque.biohub.soporte.AlmacenCacheEnMemoria;
 
 /**
  * Reclasificar sin base de datos (S20, S21).
@@ -46,6 +50,7 @@ class ServicioReclasificacionTest {
     private final Map<Long, Long> especieDelHallazgo = new HashMap<>();
     private final List<Reclasificacion> guardadas = new ArrayList<>();
     private boolean simularConflicto;
+    private final AlmacenCacheEnMemoria cache = new AlmacenCacheEnMemoria(java.time.Clock.systemUTC());
     private ServicioReclasificacion servicio;
 
     @BeforeEach
@@ -94,7 +99,7 @@ class ServicioReclasificacionTest {
         Clock relojFijo = Clock.fixed(AHORA, ZoneId.of("America/Bogota"));
 
         servicio = new ServicioReclasificacion(hallazgos, historial, fichas,
-                new NombresHistorial(fichas, usuarios), relojFijo);
+                new NombresHistorial(fichas, usuarios), relojFijo, new InvalidadorCachePublica(cache));
     }
 
     @Test
@@ -113,6 +118,19 @@ class ServicioReclasificacionTest {
         assertThat(vista.especieAnterior().nombreCientifico()).isEqualTo("Turdus fuscater");
         assertThat(vista.especieNueva().nombreCientifico()).isEqualTo("Turdus serranus");
         assertThat(vista.autor().nombre()).isEqualTo("Directora Demo");
+    }
+
+    @Test
+    void borraLaFichaPublicaDeLaEspecieAnteriorYDeLaNueva() {   // T-07, secuencia 3 pasos 20 y 21
+        for (long especie : new long[] {10L, 20L, 30L}) {
+            cache.guardar(LectorPublico.claveFicha(especie), "ficha", java.time.Duration.ofMinutes(1));
+        }
+
+        servicio.reclasificar(1L, new NuevaReclasificacion(20L, "Análisis de ADN mitocondrial"), DIRECTOR);
+
+        assertThat(cache.contiene(LectorPublico.claveFicha(10L))).isFalse();
+        assertThat(cache.contiene(LectorPublico.claveFicha(20L))).isFalse();
+        assertThat(cache.contiene(LectorPublico.claveFicha(30L))).as("otras especies no se tocan").isTrue();
     }
 
     @Test

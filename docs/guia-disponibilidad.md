@@ -8,6 +8,7 @@ Todos los comandos se corren desde la carpeta del proyecto, con el sistema arrib
 | PR-04 | Si se cae una instancia científica, el registro no tiene errores | `scripts/prueba-caida-instancia.sh` |
 | PR-05 | Si se cae la base primaria, se promueve una réplica y se mide cuánto tarda (MTTR) | `scripts/promover-replica.sh` |
 | PR-10 | Desde afuera solo responde Nginx | `scripts/verificar-red.sh` |
+| T-11 | Monitoreo de salud de cada parte y atraso de las réplicas | `scripts/estado-salud.sh` |
 
 ---
 
@@ -154,7 +155,56 @@ Revisa tres cosas:
 
 ---
 
-## 4. Otras caídas
+## 4. Monitoreo de salud (T-11)
+
+Cada contenedor tiene un **healthcheck**: Docker le pregunta cada pocos segundos si está bien.
+
+| Parte | Qué pregunta Docker | Cada |
+| --- | --- | --- |
+| Instancias científicas y públicas | `/actuator/health/readiness`: la app arrancó **y su base de datos responde** | 10 s |
+| Primaria y réplicas | `pg_isready` | 5 s |
+| Redis | `redis-cli ping` | 5 s |
+| Nginx | que sirva el portal | 10 s |
+| Batch | No tiene web: Docker solo vigila que el proceso siga vivo | — |
+
+Tres fallas seguidas y el contenedor queda **`unhealthy`**.
+
+**Por qué Redis no cuenta para la salud de una instancia:** si Redis cae, el portal sigue funcionando (lee de la réplica, paquete 08). Sacar las instancias del balanceo por eso sería apagar el portal sin necesidad.
+
+**Ver todo en una pantalla:**
+
+```bash
+./scripts/estado-salud.sh               # una revisión
+./scripts/estado-salud.sh --vigilar     # cada 10 s
+./scripts/estado-salud.sh --reparar     # reinicia las instancias unhealthy y recarga Nginx
+```
+
+Muestra la salud de cada contenedor, **qué tan atrasada va cada réplica** de la primaria (en milisegundos) y si el portal, la API externa y el registro responden por Nginx. Sale con código 1 si algo está mal, así sirve en un CI o en una tarea programada.
+
+**Arranque en orden:** `docker compose up` espera a que cada parte esté sana antes de arrancar la siguiente:
+1. la base y Redis;
+2. el grupo científico, que corre las migraciones;
+3. el grupo público y el batch;
+4. Nginx, al final, porque averigua las direcciones de las instancias al arrancar.
+
+**Resultado medido (17 de noviembre de 2026):**
+
+| Prueba | Resultado |
+| --- | --- |
+| `docker compose up` desde cero | 54 s hasta que las 10 partes están sanas |
+| Se apaga la réplica pública | La instancia pública queda `unhealthy` en **36 s** y el script lo reporta (3 problemas, código 1) |
+| Vuelve la réplica | La instancia vuelve a `healthy` **sola** en 6 s, sin reiniciarla |
+| Atraso de las réplicas en reposo | 0 a 1 ms |
+
+**Cómo se reparte el trabajo de "sacar del balanceo":**
+- **Nginx** saca a la instancia que no responde, en la primera petición que falla (`max_fails`, sección 1). Es inmediato, pero solo ve lo que le pasa a sus peticiones.
+- **El healthcheck** ve lo que Nginx no ve: una instancia que responde, pero sin base de datos. Lo muestra y, con `--reparar`, la reinicia.
+
+**Limitación:** Docker Compose **no reinicia solo** un contenedor `unhealthy`; solo reinicia los que se caen (`restart: unless-stopped`). Por eso existe `--reparar`. En producción lo haría el orquestador (Kubernetes o Docker Swarm).
+
+---
+
+## 5. Otras caídas
 
 | Se cae | Qué pasa | Qué hacer |
 | --- | --- | --- |

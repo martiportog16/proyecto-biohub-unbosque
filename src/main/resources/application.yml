@@ -51,7 +51,13 @@ management:
   endpoint:
     health:
       probes:
-        enabled: true
+        enabled: true          # /actuator/health/liveness y /actuator/health/readiness (T-11)
+      group:
+        # "¿Puede atender?": la app arrancó y su base de datos responde. Lo usa el healthcheck
+        # de Docker. Redis no está: si Redis cae, el portal sigue (lee de la réplica, paquete 08).
+        readiness:
+          include: readinessState,db
+          show-components: always
 
 springdoc:
   api-docs:
