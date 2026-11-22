@@ -5,6 +5,9 @@
 spring:
   application:
     name: biohub
+  lifecycle:
+    # Máximo que espera a las peticiones en curso (menos que los 10 s que da "docker stop").
+    timeout-per-shutdown-phase: 8s
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/biohub}
     username: ${DB_USUARIO:biohub}
@@ -34,6 +37,9 @@ biohub:
 
 server:
   port: 8080
+  # Apagado ordenado (RNF-04): al detener una instancia, termina las peticiones que
+  # ya recibió y deja de aceptar nuevas. Nginx envía las nuevas a la otra instancia.
+  shutdown: graceful
   # Nginx pasa la IP real del cliente; la app confía en esos encabezados.
   forward-headers-strategy: native
 
