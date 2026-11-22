@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
 
@@ -65,6 +66,30 @@ public final class HistorialHallazgo {
     /** Las reclasificaciones en orden cronológico (HU-07, criterio 1). No se puede modificar. */
     public List<Reclasificacion> entradas() {
         return entradas;
+    }
+
+    /**
+     * El "estado" del hallazgo en un momento dado (P-29): la especie que tenía asignada.
+     * Se reconstruye recorriendo el historial hasta ese momento (incluido).
+     * Vacío si en ese momento el hallazgo todavía no se había registrado.
+     */
+    public Optional<Long> especieEn(Instant momento) {
+        if (momento.isBefore(registradoEn)) {
+            return Optional.empty();
+        }
+        long especie = especieInicialId;
+        for (Reclasificacion r : entradas) {
+            if (r.realizadaEn().isAfter(momento)) {
+                break;
+            }
+            especie = r.especieNuevaId();
+        }
+        return Optional.of(especie);
+    }
+
+    /** Los cambios hechos DESPUÉS del momento dado: lo que cambió desde entonces hasta hoy. */
+    public List<Reclasificacion> cambiosDespuesDe(Instant momento) {
+        return entradas.stream().filter(r -> r.realizadaEn().isAfter(momento)).toList();
     }
 
     public long especieActualId() {

@@ -110,4 +110,53 @@ class HistorialHallazgoTest {
         assertThat(Reclasificacion.errores(10L, null, "Nueva evidencia genética"))
                 .containsExactly("especieNuevaId: es obligatoria");
     }
+
+    // ---- Estado en una fecha (P-29, HU-07 criterio 3) ----
+    // Registrado el 1 de octubre como especie 10; pasó a 20 el 5 y a 30 el 20 de octubre.
+
+    private HistorialHallazgo conDosCambios() {
+        return HistorialHallazgo.de(hallazgo(30L), List.of(
+                cambio(1, 10, 20, "2026-10-05T10:00:00Z"),
+                cambio(2, 20, 30, "2026-10-20T10:00:00Z")));
+    }
+
+    @Test
+    void antesDelPrimerCambioElEstadoEsLaEspecieDelRegistro() {
+        assertThat(conDosCambios().especieEn(Instant.parse("2026-10-03T00:00:00Z"))).contains(10L);
+    }
+
+    @Test
+    void entreLosDosCambiosElEstadoEsLaEspecieIntermedia() {
+        assertThat(conDosCambios().especieEn(Instant.parse("2026-10-10T00:00:00Z"))).contains(20L);
+    }
+
+    @Test
+    void enElInstanteExactoDeUnCambioYaCuentaElCambio() {
+        // Valor límite (S20): un instante antes sigue la especie vieja.
+        HistorialHallazgo historial = conDosCambios();
+        Instant cambio = Instant.parse("2026-10-05T10:00:00Z");
+
+        assertThat(historial.especieEn(cambio.minusNanos(1))).contains(10L);
+        assertThat(historial.especieEn(cambio)).contains(20L);
+    }
+
+    @Test
+    void despuesDelUltimoCambioElEstadoEsElActual() {
+        HistorialHallazgo historial = conDosCambios();
+
+        assertThat(historial.especieEn(Instant.parse("2026-11-15T00:00:00Z"))).contains(historial.especieActualId());
+    }
+
+    @Test
+    void antesDeRegistrarseElHallazgoNoTieneEstado() {
+        assertThat(conDosCambios().especieEn(REGISTRO.minusSeconds(1))).isEmpty();
+        assertThat(conDosCambios().especieEn(REGISTRO)).contains(10L);
+    }
+
+    @Test
+    void entregaLosCambiosHechosDesdeUnaFecha() {
+        assertThat(conDosCambios().cambiosDespuesDe(Instant.parse("2026-10-10T00:00:00Z")))
+                .extracting(Reclasificacion::id).containsExactly(2L);
+        assertThat(conDosCambios().cambiosDespuesDe(Instant.parse("2026-11-01T00:00:00Z"))).isEmpty();
+    }
 }
