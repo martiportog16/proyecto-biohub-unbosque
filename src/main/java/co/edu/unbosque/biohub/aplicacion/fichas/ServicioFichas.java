@@ -15,10 +15,12 @@ import co.edu.unbosque.biohub.aplicacion.fichas.VistasFichas.VistaEspecie;
 import co.edu.unbosque.biohub.aplicacion.fichas.VistasFichas.VistaFicha;
 import co.edu.unbosque.biohub.dominio.fichas.DefinicionAtributo;
 import co.edu.unbosque.biohub.dominio.fichas.FichaTaxonomica;
+import co.edu.unbosque.biohub.dominio.fichas.MembresiaGrupo;
 import co.edu.unbosque.biohub.dominio.fichas.ReglaDeFichaException;
 import co.edu.unbosque.biohub.dominio.fichas.TipoDato;
 import co.edu.unbosque.biohub.dominio.fichas.validacion.CatalogoValidadores;
 import co.edu.unbosque.biohub.persistencia.fichas.RepositorioFichas;
+import co.edu.unbosque.biohub.persistencia.fichas.RepositorioGrupos;
 
 /**
  * Casos de uso de las fichas flexibles (HU-02, CU-02, secuencia 7).
@@ -31,12 +33,14 @@ public class ServicioFichas {
     private final RepositorioFichas repositorio;
     private final CatalogoValidadores catalogo;
     private final InvalidadorCachePublica cachePublica;
+    private final RepositorioGrupos grupos;
 
     public ServicioFichas(RepositorioFichas repositorio, CatalogoValidadores catalogo,
-                          InvalidadorCachePublica cachePublica) {
+                          InvalidadorCachePublica cachePublica, RepositorioGrupos grupos) {
         this.repositorio = repositorio;
         this.catalogo = catalogo;
         this.cachePublica = cachePublica;
+        this.grupos = grupos;
     }
 
     public List<VistaEspecie> especies() {
@@ -59,7 +63,7 @@ public class ServicioFichas {
         long id = repositorio.crearEspecie(datos.nombreCientifico(), datos.nombreComun(), datos.enPeligro());
         List<NuevoAtributo> atributos = datos.atributos() == null ? List.of() : datos.atributos();
         FichaTaxonomica ficha = traducir(() ->
-                FichaTaxonomica.inicial(id, atributos.stream().map(this::aDefinicion).toList()));
+                FichaTaxonomica.inicial(id, atributos.stream().map(ServicioFichas::aDefinicion).toList()));
         repositorio.guardarVersion(ficha, autorId);
         cachePublica.fichaCambio(id);
         return VistaFicha.de(ficha);
@@ -69,6 +73,7 @@ public class ServicioFichas {
     public VistaFicha agregarAtributo(long especieId, NuevoAtributo atributo, long autorId) {
         FichaTaxonomica nueva = traducir(() -> vigente(especieId).conAtributo(aDefinicion(atributo)));
         repositorio.guardarVersion(nueva, autorId);
+        independizarDelGrupo(especieId);
         cachePublica.fichaCambio(especieId);
         return VistaFicha.de(nueva);
     }
@@ -77,6 +82,7 @@ public class ServicioFichas {
     public VistaFicha retirarAtributo(long especieId, String nombre, long autorId) {
         FichaTaxonomica nueva = traducir(() -> vigente(especieId).sinAtributo(nombre));
         repositorio.guardarVersion(nueva, autorId);
+        independizarDelGrupo(especieId);
         cachePublica.fichaCambio(especieId);
         return VistaFicha.de(nueva);
     }
@@ -94,12 +100,25 @@ public class ServicioFichas {
         return ficha.version();
     }
 
+    /**
+     * Si el administrador cambia directamente la ficha de una especie que heredaba la de
+     * su grupo, la especie pasa a tener ficha propia: el próximo cambio del grupo ya no
+     * le borra lo que se hizo a mano. Sigue perteneciendo al grupo.
+     */
+    private void independizarDelGrupo(long especieId) {
+        MembresiaGrupo m = grupos.membresia(especieId);
+        if (m.heredaFicha()) {
+            grupos.cambiarMembresia(new MembresiaGrupo(especieId, m.grupoId(), false));
+        }
+    }
+
     private FichaTaxonomica vigente(long especieId) {
         return repositorio.fichaVigente(especieId)
                 .orElseThrow(() -> new NoEncontradoException("No existe la especie " + especieId));
     }
 
-    private DefinicionAtributo aDefinicion(NuevoAtributo a) {
+    /** También lo usa ServicioGruposTaxonomicos: un atributo se define igual para una especie o un grupo. */
+    static DefinicionAtributo aDefinicion(NuevoAtributo a) {
         TipoDato tipo = null;
         try {
             tipo = a.tipo() == null ? null : TipoDato.valueOf(a.tipo().trim().toUpperCase());
@@ -111,7 +130,7 @@ public class ServicioFichas {
     }
 
     /** Convierte la regla violada del dominio en el error que entiende la presentación. */
-    private FichaTaxonomica traducir(java.util.function.Supplier<FichaTaxonomica> cambio) {
+    static FichaTaxonomica traducir(java.util.function.Supplier<FichaTaxonomica> cambio) {
         try {
             return cambio.get();
         } catch (ReglaDeFichaException e) {

@@ -23,7 +23,7 @@ public final class VistasFichas {
 
     public record VistaAtributo(String nombre, String tipo, boolean obligatorio, boolean activo,
                                 List<String> opciones, String unidad) {
-        static VistaAtributo de(DefinicionAtributo a) {
+        public static VistaAtributo de(DefinicionAtributo a) {
             return new VistaAtributo(a.nombre(), a.tipo().name(), a.obligatorio(), a.activo(), a.opciones(), a.unidad());
         }
     }

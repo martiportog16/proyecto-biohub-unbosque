@@ -8,7 +8,9 @@ import java.util.Optional;
 import co.edu.unbosque.biohub.dominio.fichas.validacion.CatalogoValidadores;
 
 /**
- * La ficha de una especie: qué atributos se registran en sus hallazgos (RNF-01, ADR-07).
+ * La ficha de una especie o de un grupo taxonómico: qué atributos se registran en
+ * los hallazgos (RNF-01, ADR-07). El primer número es el de su dueño: la especie,
+ * o el grupo cuando es la ficha de un grupo (ver FichaDeGrupo).
  *
  * Es INMUTABLE y VERSIONADA: agregar o retirar un atributo crea una versión nueva.
  * Así cada hallazgo sigue apuntando a la versión con la que se registró y ningún
@@ -62,6 +64,29 @@ public record FichaTaxonomica(long especieId, int version, List<DefinicionAtribu
         List<DefinicionAtributo> lista = atributos.stream()
                 .map(a -> a.nombre().equals(nombre) ? a.retirado() : a)
                 .toList();
+        return new FichaTaxonomica(especieId, version + 1, lista);
+    }
+
+    /**
+     * La especie adopta la ficha de su grupo taxonómico (RF-02: ficha "por especie o
+     * categoría", diagrama de clases: FichaTaxonomica define para Especie o GrupoTaxonomico).
+     *
+     * Devuelve la versión SIGUIENTE de la ficha de esta especie, con:
+     *  - todos los atributos de la ficha del grupo, tal como están en el grupo
+     *    (activos o retirados); si un nombre coincide, manda la definición del grupo;
+     *  - los atributos propios de la especie que el grupo no tiene, pero RETIRADOS:
+     *    ya no se piden en hallazgos nuevos, y los valores viejos se conservan (RNF-01).
+     *
+     * Es una copia: así cada hallazgo sigue apuntando a una versión fija de la ficha de
+     * su especie (PR-01) y nada del registro, la consulta pública ni la API externa cambia.
+     */
+    public FichaTaxonomica adoptar(FichaTaxonomica fichaDelGrupo) {
+        List<DefinicionAtributo> lista = new ArrayList<>(fichaDelGrupo.atributos());
+        for (DefinicionAtributo propio : atributos) {
+            if (fichaDelGrupo.buscar(propio.nombre()).isEmpty()) {
+                lista.add(propio.activo() ? propio.retirado() : propio);
+            }
+        }
         return new FichaTaxonomica(especieId, version + 1, lista);
     }
 
