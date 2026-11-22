@@ -43,7 +43,7 @@ import co.edu.unbosque.biohub.persistencia.fichas.RepositorioFichas;
 @Service
 public class LectorPublico {
 
-    static final String CLAVE_LISTADO = "publico:especies";
+    public static final String CLAVE_LISTADO = "publico:especies";
 
     private final RepositorioFichas fichas;
     private final RepositorioConsultaPublica consultas;
@@ -60,7 +60,7 @@ public class LectorPublico {
         this.vida = Duration.ofSeconds(vidaSegundos);
     }
 
-    static String claveFicha(long especieId) {
+    public static String claveFicha(long especieId) {
         return "publico:ficha:" + especieId;
     }
 

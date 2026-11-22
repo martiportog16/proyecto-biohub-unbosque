@@ -1,5 +1,6 @@
 package co.edu.unbosque.biohub.aplicacion.hallazgos;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -29,6 +30,9 @@ import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
 import co.edu.unbosque.biohub.persistencia.coordenadas.EscrituraCoordenadas;
 import co.edu.unbosque.biohub.persistencia.fichas.RepositorioFichas;
 import co.edu.unbosque.biohub.persistencia.hallazgos.RepositorioHallazgos;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.InvalidadorCachePublica;
+import co.edu.unbosque.biohub.aplicacion.consultapublica.LectorPublico;
+import co.edu.unbosque.biohub.soporte.AlmacenCacheEnMemoria;
 
 /**
  * Registro de hallazgos sin base de datos (S20 y S21):
@@ -43,6 +47,7 @@ class ServicioRegistroHallazgosTest {
 
     private final List<Hallazgo> guardados = new ArrayList<>();
     private final Map<Long, Coordenada> coordenadasGuardadas = new HashMap<>();
+    private final AlmacenCacheEnMemoria cache = new AlmacenCacheEnMemoria(Clock.systemUTC());
     private ServicioRegistroHallazgos servicio;
 
     @BeforeEach
@@ -73,7 +78,7 @@ class ServicioRegistroHallazgosTest {
         Clock relojFijo = Clock.fixed(HOY.atStartOfDay(BOGOTA).toInstant(), BOGOTA);
 
         servicio = new ServicioRegistroHallazgos(hallazgosFake, fichasFake, spy,
-                CatalogoValidadores.estandar(), relojFijo);
+                CatalogoValidadores.estandar(), relojFijo, new InvalidadorCachePublica(cache));
     }
 
     private NuevoHallazgo hallazgo(LocalDate fecha, String departamento, Map<String, Object> valores, NuevaCoordenada c) {
@@ -89,6 +94,26 @@ class ServicioRegistroHallazgosTest {
         assertThat(guardados).hasSize(1);
         assertThat(coordenadasGuardadas).containsKey(vista.id());
         assertThat(coordenadasGuardadas.get(vista.id()).latitud()).isEqualTo(4.6097);
+    }
+
+    @Test
+    void alRegistrarSeBorraLaFichaPublicaDeLaEspecie() {   // T-07, secuencia 1 paso 18
+        cache.guardar(LectorPublico.claveFicha(7L), "ficha vieja", java.time.Duration.ofMinutes(1));
+        cache.guardar(LectorPublico.CLAVE_LISTADO, "listado", java.time.Duration.ofMinutes(1));
+
+        servicio.registrar(hallazgo(HOY, "Meta", Map.of("conteo", 2), new NuevaCoordenada(4.0, -73.0, null)), 1L);
+
+        assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isFalse();
+        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado no muestra conteos").isTrue();
+    }
+
+    @Test
+    void unHallazgoRechazadoNoTocaLaCache() {
+        cache.guardar(LectorPublico.claveFicha(7L), "ficha", java.time.Duration.ofMinutes(1));
+
+        assertThatThrownBy(() -> servicio.registrar(hallazgo(HOY, "Meta", Map.of(), null), 1L))
+                .isInstanceOf(ReglaDeNegocioException.class);
+        assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isTrue();
     }
 
     @Test
