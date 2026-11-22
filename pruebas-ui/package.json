@@ -1,0 +1,11 @@
+{
+  "name": "biohub-pruebas-ui",
+  "private": true,
+  "description": "Pruebas en navegador de la consola científica y del portal (Playwright)",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2"
+  }
+}

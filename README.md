@@ -82,6 +82,12 @@ mvn verify
 - `*IT.java` = pruebas de integración (`mvn verify`).
 - Reporte de cobertura: `target/site/jacoco/index.html`.
 
+### Pruebas en navegador (con `docker compose up -d`; no hay que instalar Node)
+
+```bash
+./scripts/pruebas-ui.sh               # abre un Chrome real y usa la consola con cada rol
+```
+
 ### Pruebas de disponibilidad y red (con `docker compose up -d`)
 
 ```bash
