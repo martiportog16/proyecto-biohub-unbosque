@@ -106,12 +106,16 @@ services:
     <<: *app
     environment:
       SPRING_PROFILES_ACTIVE: batch
+      # Lee (consulta pesada) de la réplica de analítica...
       DB_URL: jdbc:postgresql://postgres-replica-analitica:5432/biohub
+      # ...y guarda el informe en la primaria (P-03).
+      BATCH_PRIMARIA_URL: jdbc:postgresql://postgres-primaria:5432/biohub
       DB_USUARIO: app_batch
       DB_CLAVE: ${DB_CLAVE_APP_BATCH:-batch_cambiar}
       REDIS_HOST: redis
     depends_on:
       - postgres-replica-analitica
+      - postgres-primaria
       - app-cientifico
 
   # ---------- Punto de entrada único (RNF-07, ADR-09) ----------

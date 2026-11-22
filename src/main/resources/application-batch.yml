@@ -1,5 +1,9 @@
 # Rol BATCH: genera el informe mensual de presión (HU-11, RNF-09).
-# Lee de la réplica de analítica. No atiende tráfico web: Nginx nunca le envía peticiones.
+# No atiende tráfico web: Nginx nunca le envía peticiones.
+#
+# Tiene DOS conexiones a base de datos (P-03):
+#   1. spring.datasource      -> la RÉPLICA de analítica, solo lectura. Aquí corre la consulta pesada.
+#   2. biohub.batch.primaria  -> la PRIMARIA, solo para guardar el informe (pocas filas al mes).
 
 spring:
   main:
@@ -10,3 +14,21 @@ spring:
     password: ${DB_CLAVE:batch}
     hikari:
       read-only: true
+      maximum-pool-size: 2
+      # Sin esto el controlador de PostgreSQL solo aplica "solo lectura" dentro de
+      # transacciones explícitas. Con "always" lo aplica a TODA la sesión.
+      data-source-properties:
+        readOnlyMode: always
+
+biohub:
+  batch:
+    primaria:
+      # Sin BATCH_PRIMARIA_URL (desarrollo local con una sola base) usa la misma base.
+      url: ${BATCH_PRIMARIA_URL:${DB_URL:jdbc:postgresql://localhost:5432/biohub}}
+      usuario: ${DB_USUARIO:app_batch}
+      clave: ${DB_CLAVE:batch}
+    # segundo minuto hora día-del-mes mes día-de-la-semana -> día 1 a las 2:00 a. m. (T-24)
+    cron-mensual: "0 0 2 1 * *"
+    revisar-solicitudes-ms: 30000
+    ponerse-al-dia-ms: 3600000
+    espera-inicial-ms: 20000
