@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import co.edu.unbosque.biohub.aplicacion.autenticacion.CredencialesInvalidasException;
+import co.edu.unbosque.biohub.aplicacion.comun.ConflictoException;
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
 
@@ -36,6 +37,11 @@ public class ManejadorErrores {
     @ExceptionHandler(NoEncontradoException.class)
     ResponseEntity<RespuestaError> noEncontrado(NoEncontradoException e) {
         return responder(HttpStatus.NOT_FOUND, e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(ConflictoException.class)
+    ResponseEntity<RespuestaError> conflicto(ConflictoException e) {
+        return responder(HttpStatus.CONFLICT, e.getMessage(), List.of());
     }
 
     @ExceptionHandler(ReglaDeNegocioException.class)
