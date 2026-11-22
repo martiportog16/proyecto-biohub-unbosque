@@ -3,21 +3,174 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BioHub</title>
+  <title>BioHub · Consulta pública</title>
+  <!--
+    Portal público (HU-04). Página estática servida por Nginx.
+    Solo llama a /api/publico/**, que Nginx envía al grupo público (caché + réplica).
+    Nunca muestra coordenadas: la API pública no las tiene.
+  -->
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 16px; color: #1f2d27; }
-    h1 { color: #1d6b4b; }
-    code { background: #eef5f1; padding: 2px 6px; border-radius: 4px; }
+    :root {
+      --fondo: #f6f8f5; --tarjeta: #ffffff; --texto: #1f2d27; --suave: #5b6b63;
+      --marca: #1d6b4b; --marca-clara: #e3f0e9; --borde: #d9e2dc; --alerta: #a3372a; --alerta-clara: #fbe9e6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fondo: #121815; --tarjeta: #1b231f; --texto: #e6eee9; --suave: #9fb0a7;
+        --marca: #6fcf9f; --marca-clara: #213a2e; --borde: #2c3832; --alerta: #f09a8c; --alerta-clara: #3a2320;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--fondo); color: var(--texto); line-height: 1.5; }
+    header { background: var(--marca); color: #fff; padding: 20px 16px; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header p { margin: 4px 0 0; opacity: .9; }
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+    form { display: flex; gap: 8px; }
+    label.oculto { position: absolute; left: -9999px; }
+    input[type=search] { flex: 1; font-size: 1.05rem; padding: 12px 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--tarjeta); color: var(--texto); }
+    button { font-size: 1rem; padding: 12px 18px; border: 0; border-radius: 10px; background: var(--marca); color: #fff; cursor: pointer; }
+    button.enlace { background: none; color: var(--marca); padding: 0; font-size: .95rem; }
+    .ayuda { color: var(--suave); font-size: .9rem; margin: 8px 0 20px; }
+    ul.resultados { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    ul.resultados button { width: 100%; text-align: left; background: var(--tarjeta); color: var(--texto); border: 1px solid var(--borde); padding: 14px 16px; }
+    ul.resultados button:hover, ul.resultados button:focus { border-color: var(--marca); outline: none; }
+    .cientifico { font-style: italic; font-weight: 600; }
+    .comun { color: var(--suave); }
+    .etiqueta { display: inline-block; font-size: .8rem; padding: 2px 8px; border-radius: 999px; background: var(--marca-clara); color: var(--marca); margin-left: 6px; }
+    .etiqueta.peligro { background: var(--alerta-clara); color: var(--alerta); }
+    .ficha { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 20px; }
+    .ficha h2 { margin: 8px 0 0; font-style: italic; }
+    .ficha h3 { margin: 24px 0 8px; font-size: 1rem; }
+    .cifra { font-size: 2rem; font-weight: 700; color: var(--marca); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--borde); }
+    th { color: var(--suave); font-weight: 600; font-size: .9rem; }
+    .nota { background: var(--marca-clara); border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin-top: 20px; }
+    .mensaje { color: var(--suave); padding: 16px 0; }
+    footer { color: var(--suave); font-size: .85rem; text-align: center; padding: 24px 16px; }
+    footer a { color: var(--marca); }
   </style>
 </head>
 <body>
-  <h1>BioHub</h1>
-  <p>Registro y vigilancia de biodiversidad.</p>
-  <p>El portal público se construye en el paquete de consulta pública (HU-04).</p>
-  <ul>
-    <li>Estado del grupo público: <code>/api/publico/estado</code></li>
-    <li>Estado del grupo científico: <code>/api/cientifico/estado</code></li>
-    <li>Documentación de la API: <a href="/swagger-ui.html">Swagger UI</a></li>
-  </ul>
+  <header>
+    <h1>BioHub</h1>
+    <p>Inventario nacional de biodiversidad · consulta pública</p>
+  </header>
+
+  <main>
+    <section id="busqueda">
+      <form id="formulario" role="search">
+        <label class="oculto" for="texto">Buscar especie</label>
+        <input id="texto" type="search" placeholder="Busca una especie, por ejemplo: oso, mirla, Ateles" autocomplete="off">
+        <button type="submit">Buscar</button>
+      </form>
+      <p class="ayuda">Escribe el nombre común o científico. No importan las tildes ni las mayúsculas.</p>
+      <ul id="resultados" class="resultados" aria-live="polite"></ul>
+    </section>
+
+    <section id="detalle" hidden></section>
+  </main>
+
+  <footer>
+    Por protección de las especies, BioHub solo muestra el <strong>departamento</strong> donde se vio cada especie, nunca la ubicación exacta.
+    · <a href="/swagger-ui.html">API</a>
+  </footer>
+
+  <script>
+    const resultados = document.getElementById('resultados');
+    const detalle = document.getElementById('detalle');
+    const busqueda = document.getElementById('busqueda');
+
+    // Escapa el texto antes de ponerlo en la página (los nombres vienen de la base)
+    const seguro = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    const etiquetas = (e) => e.enPeligro ? '<span class="etiqueta peligro">En peligro</span>' : '';
+
+    async function pedir(url) {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (r.status === 429) throw new Error('Hay muchas consultas en este momento. Intenta de nuevo en unos segundos.');
+      if (r.status === 404) throw new Error('No encontramos esa especie.');
+      if (!r.ok) throw new Error('No pudimos cargar la información. Intenta de nuevo.');
+      return r.json();
+    }
+
+    async function buscar(texto) {
+      resultados.innerHTML = '<li class="mensaje">Buscando…</li>';
+      try {
+        const especies = await pedir('/api/publico/especies?buscar=' + encodeURIComponent(texto));
+        if (especies.length === 0) {
+          resultados.innerHTML = '<li class="mensaje">No hay especies con ese nombre.</li>';
+          return;
+        }
+        resultados.innerHTML = especies.map(e => `
+          <li><button type="button" data-id="${e.id}">
+            <span class="cientifico">${seguro(e.nombreCientifico)}</span>${etiquetas(e)}<br>
+            <span class="comun">${seguro(e.nombreComun)} · ${e.totalHallazgos} hallazgo${e.totalHallazgos === 1 ? '' : 's'}</span>
+          </button></li>`).join('');
+      } catch (err) {
+        resultados.innerHTML = `<li class="mensaje">${seguro(err.message)}</li>`;
+      }
+    }
+
+    async function verFicha(id) {
+      busqueda.hidden = true;
+      detalle.hidden = false;
+      detalle.innerHTML = '<p class="mensaje">Cargando ficha…</p>';
+      try {
+        const f = await pedir('/api/publico/especies/' + encodeURIComponent(id));
+        const atributos = f.atributos.length
+          ? f.atributos.map(a => `<li>${seguro(a.nombre.replaceAll('_', ' '))}${a.unidad ? ' (' + seguro(a.unidad) + ')' : ''}</li>`).join('')
+          : '<li>Sin variables definidas</li>';
+        const departamentos = f.departamentos.length
+          ? `<table><thead><tr><th>Departamento</th><th>Hallazgos</th><th>Última observación</th></tr></thead><tbody>
+              ${f.departamentos.map(d => `<tr><td>${seguro(d.departamento)}</td><td>${d.hallazgos}</td><td>${seguro(d.ultimaObservacion)}</td></tr>`).join('')}
+             </tbody></table>`
+          : '<p class="mensaje">Todavía no hay hallazgos registrados.</p>';
+        detalle.innerHTML = `
+          <button type="button" class="enlace" id="volver">← Volver a la búsqueda</button>
+          <article class="ficha">
+            <h2>${seguro(f.nombreCientifico)}${etiquetas(f)}</h2>
+            <p class="comun">${seguro(f.nombreComun)}</p>
+            <p><span class="cifra">${f.totalHallazgos}</span> hallazgo${f.totalHallazgos === 1 ? '' : 's'} registrado${f.totalHallazgos === 1 ? '' : 's'}</p>
+            <h3>Dónde se ha visto</h3>
+            ${departamentos}
+            <h3>Qué registran los investigadores</h3>
+            <ul>${atributos}</ul>
+            ${f.enPeligro ? '<p class="nota">Es una especie en peligro: su ubicación exacta solo la conoce el personal científico autorizado.</p>' : ''}
+          </article>`;
+        document.getElementById('volver').addEventListener('click', () => { history.pushState({}, '', '/'); mostrarBusqueda(); });
+      } catch (err) {
+        detalle.innerHTML = `<button type="button" class="enlace" id="volver">← Volver</button><p class="mensaje">${seguro(err.message)}</p>`;
+        document.getElementById('volver').addEventListener('click', () => { history.pushState({}, '', '/'); mostrarBusqueda(); });
+      }
+    }
+
+    function mostrarBusqueda() {
+      detalle.hidden = true;
+      busqueda.hidden = false;
+    }
+
+    document.getElementById('formulario').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      buscar(document.getElementById('texto').value);
+    });
+
+    resultados.addEventListener('click', (ev) => {
+      const boton = ev.target.closest('button[data-id]');
+      if (boton) {
+        history.pushState({ id: boton.dataset.id }, '', '?especie=' + boton.dataset.id);
+        verFicha(boton.dataset.id);
+      }
+    });
+
+    // Enlace directo a una ficha: /?especie=2 (para compartir una especie recién anunciada)
+    window.addEventListener('popstate', () => {
+      const id = new URLSearchParams(location.search).get('especie');
+      id ? verFicha(id) : mostrarBusqueda();
+    });
+    const inicial = new URLSearchParams(location.search).get('especie');
+    if (inicial) { verFicha(inicial); } else { buscar(''); }
+  </script>
 </body>
 </html>
