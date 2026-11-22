@@ -66,6 +66,16 @@ mvn verify
 - `*IT.java` = pruebas de integración (`mvn verify`).
 - Reporte de cobertura: `target/site/jacoco/index.html`.
 
+### Pruebas de disponibilidad y red (con `docker compose up -d`)
+
+```bash
+./scripts/prueba-caida-instancia.sh   # PR-04: se apaga una instancia y el registro no falla
+./scripts/verificar-red.sh            # PR-10: desde afuera solo responde Nginx
+./scripts/promover-replica.sh         # PR-05: si se cae la primaria (¡apaga la primaria actual!)
+```
+
+Qué hace cada una, los resultados medidos y qué hacer si algo se cae: [`docs/guia-disponibilidad.md`](docs/guia-disponibilidad.md).
+
 ## Forma de trabajo en Git
 
 1. Una rama corta por tarea: `feature/hu-06-reclasificar`.
