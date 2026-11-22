@@ -28,8 +28,13 @@ public class OpenApiConfig {
                 .info(new Info().title("BioHub API").version("v1")
                         .description("Registro y vigilancia de biodiversidad"))
                 .servers(List.of(new Server().url("/").description("Este mismo servidor")))
-                .components(new Components().addSecuritySchemes("token",
-                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
+                .components(new Components()
+                        .addSecuritySchemes("token",
+                                new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"))
+                        // API externa /v1: los consumidores se identifican con su API key (RF-13)
+                        .addSecuritySchemes("apiKey",
+                                new SecurityScheme().type(SecurityScheme.Type.APIKEY)
+                                        .in(SecurityScheme.In.HEADER).name("X-API-Key")))
                 .addSecurityItem(new SecurityRequirement().addList("token"));
     }
 }
