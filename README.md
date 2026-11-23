@@ -27,12 +27,20 @@ presentacion  ->  aplicacion  ->  persistencia  ->  PostgreSQL
 
 Las decisiones y su justificación están en `docs/` y en el documento *BioHub — Decisiones de implementación*.
 
+| Documento | Para qué |
+| --- | --- |
+| [`docs/trazabilidad.md`](docs/trazabilidad.md) | Dónde quedó cada cosa del Entregable 2: módulos, secuencias, tácticas, pruebas y patrones |
+| [`docs/modelo-de-datos.md`](docs/modelo-de-datos.md) | Diagrama entidad-relación de la base **real** y los permisos de cada usuario |
+| [`docs/guia-disponibilidad.md`](docs/guia-disponibilidad.md) | Caídas, promoción de réplica, red y monitoreo de salud |
+| [`docs/guia-pruebas-carga.md`](docs/guia-pruebas-carga.md) | Pruebas de carga y sus resultados |
+| [`docs/prueba-usabilidad.md`](docs/prueba-usabilidad.md) | Guion y hoja de registro de la prueba con 10 personas (RNF-10) |
+
 ## Cómo levantarlo
 
 Requisitos: Docker Desktop (o Docker + Docker Compose).
 
 ```bash
-cp .env.example .env        # y cambiar las claves si se quiere
+./scripts/preparar-env.sh   # una vez: crea .env con claves aleatorias (sin él no arranca)
 docker compose up --build
 ```
 
@@ -50,6 +58,12 @@ Para la sustentación, con datos que tienen historia (hallazgos de meses pasados
 
 ```bash
 ./scripts/sembrar-demo.sh
+```
+
+Y el día de la sustentación, para que no aparezcan los datos que dejan las pruebas (**borra todo**):
+
+```bash
+./scripts/preparar-demo.sh
 ```
 
 `docker compose up` espera a que cada parte esté **sana** antes de arrancar la siguiente (T-11): primero la base y Redis, luego el grupo científico (que corre las migraciones), luego el público y el batch, y al final Nginx. Para ver la salud de todo:
