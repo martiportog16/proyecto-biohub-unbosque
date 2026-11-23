@@ -15,7 +15,7 @@ DO $$
 DECLARE
     ana    BIGINT := (SELECT id FROM usuario WHERE correo = 'investigador@biohub.co');
     marta  BIGINT := (SELECT id FROM usuario WHERE correo = 'director@biohub.co');
-    elena  BIGINT := (SELECT id FROM usuario WHERE correo = 'altorango@biohub.co');
+    carlos BIGINT := (SELECT id FROM usuario WHERE correo = 'investigador2@biohub.co');   -- V10
     mono   BIGINT := (SELECT id FROM especie WHERE nombre_cientifico = 'Ateles hybridus');
     oso    BIGINT := (SELECT id FROM especie WHERE nombre_cientifico = 'Tremarctos ornatus');
     mirla  BIGINT := (SELECT id FROM especie WHERE nombre_cientifico = 'Turdus fuscater');
@@ -59,9 +59,9 @@ BEGIN
     -- ---------- Equipos de campo ----------
     INSERT INTO equipo_campo (codigo, tipo, descripcion, responsable_id, registrado_por, registrado_en) VALUES
         ('DRON-001',  'DRON',               'DJI Mavic 3 Enterprise',         ana,   ana,   '2026-05-02 08:00-05'),
-        ('SENSOR-T-12','SENSOR',            'Temperatura y humedad, páramo',  marta, marta, '2026-05-20 09:00-05'),
+        ('SENSOR-T-12','SENSOR',            'Temperatura y humedad, páramo',  carlos, carlos, '2026-05-20 09:00-05'),
         ('GRAB-02',   'GRABADORA_ACUSTICA', 'AudioMoth 1.2',                  ana,   ana,   '2026-06-01 08:30-05'),
-        ('GPS-03',    'GPS',                'Garmin GPSMAP 66',               elena, marta, '2026-06-15 14:00-05');
+        ('GPS-03',    'GPS',                'Garmin GPSMAP 66',               carlos, ana,   '2026-06-15 14:00-05');
     INSERT INTO equipo_campo (codigo, tipo, descripcion, responsable_id, registrado_por, registrado_en)
     VALUES ('CAM-TRAMPA-07', 'CAMARA_TRAMPA', 'Bushnell Core DS, visión nocturna', ana, ana, '2026-05-10 10:00-05')
     RETURNING id INTO camara;
@@ -69,10 +69,10 @@ BEGIN
     INSERT INTO asignacion_equipo (equipo_id, responsable_id, asignado_por, asignado_en, motivo)
     SELECT id, responsable_id, registrado_por, registrado_en, 'Registro del equipo' FROM equipo_campo
      WHERE codigo IN ('DRON-001', 'SENSOR-T-12', 'GRAB-02', 'GPS-03', 'CAM-TRAMPA-07');
-    -- La cámara pasó a Marta para el páramo y volvió a Ana
+    -- La cámara pasó a Carlos para el páramo y volvió a Ana (el responsable siempre es un investigador, HU-03)
     INSERT INTO asignacion_equipo (equipo_id, responsable_id, asignado_por, asignado_en, motivo) VALUES
-        (camara, marta, ana,   '2026-08-01 07:30-05', 'Instalación en el páramo de Chingaza durante agosto'),
-        (camara, ana,   marta, '2026-10-02 16:00-05', 'Regresa al laboratorio para mantenimiento');
+        (camara, carlos, ana,    '2026-08-01 07:30-05', 'Instalación en el páramo de Chingaza durante agosto'),
+        (camara, ana,    carlos, '2026-10-02 16:00-05', 'Regresa al laboratorio para mantenimiento');
     -- equipo_campo no admite UPDATE general: solo del responsable (V9)
     UPDATE equipo_campo SET responsable_id = ana WHERE id = camara;
 

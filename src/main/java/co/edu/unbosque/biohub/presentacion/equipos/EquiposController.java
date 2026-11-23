@@ -27,18 +27,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * Equipos de campo (RF-03, RF-04, HU-03). Los consulta el personal científico.
- * Los registran o cambian de manos el investigador, el director y el administrador científico.
+ * Equipos de campo (RF-03, RF-04, HU-03).
+ * Según el diagrama de casos de uso, el único actor de CU-03 (asociar un equipo a su
+ * responsable) y de CU-04 (consultar quién lo tiene) es el investigador.
  */
 @RestController
 @RequestMapping("/api/cientifico/equipos")
 @Tag(name = "Equipos de campo")
-@PreAuthorize(EquiposController.PERSONAL_CIENTIFICO)
+@PreAuthorize(EquiposController.INVESTIGADOR)
 public class EquiposController {
 
-    static final String PERSONAL_CIENTIFICO = "hasAnyRole('INVESTIGADOR','ADMINISTRADOR_CIENTIFICO',"
-            + "'DIRECTOR_CIENTIFICO','AUDITOR_CIENTIFICO','ALTO_RANGO')";
-    private static final String QUIENES_ASIGNAN = "hasAnyRole('INVESTIGADOR','ADMINISTRADOR_CIENTIFICO','DIRECTOR_CIENTIFICO')";
+    static final String INVESTIGADOR = "hasRole('INVESTIGADOR')";
 
     private final ServicioEquipos servicio;
 
@@ -54,7 +53,6 @@ public class EquiposController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(QUIENES_ASIGNAN)
     @Operation(summary = "Registrar un equipo con su responsable (CU-03)",
             description = "Sin responsable no se registra (HU-03, criterio 4).")
     public VistaEquipo registrar(@RequestBody NuevoEquipo datos, @AuthenticationPrincipal Jwt token) {
@@ -74,7 +72,6 @@ public class EquiposController {
     }
 
     @PutMapping("/{id}/responsable")
-    @PreAuthorize(QUIENES_ASIGNAN)
     @Operation(summary = "Pasar el equipo a otro responsable", description = "El motivo es obligatorio y queda en el historial.")
     public VistaEquipo reasignar(@PathVariable long id, @RequestBody Reasignacion datos,
                                  @AuthenticationPrincipal Jwt token) {
@@ -88,7 +85,7 @@ public class EquiposController {
     }
 
     @GetMapping("/responsables-posibles")
-    @Operation(summary = "Personal científico activo que puede quedar a cargo de un equipo")
+    @Operation(summary = "Investigadores activos que pueden quedar a cargo de un equipo")
     public List<VistaPersona> responsablesPosibles() {
         return servicio.responsablesPosibles();
     }
