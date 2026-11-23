@@ -1,0 +1,6 @@
+colombia-departamentos.geojson: límites de los 33 departamentos de Colombia.
+Fuente: Natural Earth, 1:10m admin-1 states/provinces (dominio público).
+https://github.com/nvkelso/natural-earth-vector  ·  https://www.naturalearthdata.com/about/terms-of-use/
+Se dejaron solo los de Colombia, con el mismo nombre que valida BioHub ("Bogota" -> "Bogotá D.C."),
+y se simplificaron a ~1 km para que pese 64 KB. Es solo un fondo: los puntos se dibujan con
+la coordenada exacta que entrega la API.

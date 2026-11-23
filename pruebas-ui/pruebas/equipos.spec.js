@@ -6,8 +6,9 @@ test('registrar un equipo, pasarlo a otra persona y ver el historial', async ({ 
   await entrarComo(page, USUARIOS.investigador);
   await page.getByRole('navigation').getByRole('link', { name: 'Equipos de campo' }).click();
   await page.getByRole('link', { name: '+ Registrar equipo' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar equipo');
   const codigo = 'UI-' + Date.now().toString(36).toUpperCase();
-  await page.getByLabel('Código').fill(codigo.toLowerCase());
+  await page.getByLabel('Código', { exact: true }).fill(codigo.toLowerCase());
   await page.getByLabel('Tipo').selectOption('DRON');
   await page.getByLabel(/Descripción/).fill('Dron de prueba');
   // La persona que registra queda escogida como responsable
@@ -40,7 +41,8 @@ test('registrar un equipo, pasarlo a otra persona y ver el historial', async ({ 
 test('sin responsable no se puede registrar un equipo (HU-03, criterio 4)', async ({ page }) => {
   await entrarComo(page, USUARIOS.investigador);
   await page.goto('/consola/#/equipos/nuevo');
-  await page.getByLabel('Código').fill('SIN-RESP-UI');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar equipo');
+  await page.getByLabel('Código', { exact: true }).fill('SIN-RESP-UI');
   await page.getByLabel('Tipo').selectOption('GPS');
   await page.getByLabel('Responsable').selectOption('');
   await page.getByRole('button', { name: 'Registrar equipo' }).click();
