@@ -20,6 +20,15 @@ import co.edu.unbosque.biohub.persistencia.usuarios.RepositorioUsuarios;
  */
 class ServicioAutenticacionTest {
 
+    /** Intentos fallidos en memoria (en producción van en Redis). */
+    private final java.util.Map<String, Long> fallos = new java.util.HashMap<>();
+    private final co.edu.unbosque.biohub.persistencia.autenticacion.ContadorIntentosFallidos intentos =
+            new co.edu.unbosque.biohub.persistencia.autenticacion.ContadorIntentosFallidos() {
+                public long fallos(String c) { return fallos.getOrDefault(c, 0L); }
+                public void registrarFallo(String c) { fallos.merge(c, 1L, Long::sum); }
+                public void limpiar(String c) { fallos.remove(c); }
+            };
+
     private static final PasswordEncoder BCRYPT = new BCryptPasswordEncoder(4); // costo bajo: prueba rápida
     private static final String CLAVE = "BioHub2026!";
 
@@ -45,7 +54,7 @@ class ServicioAutenticacionTest {
         };
         EmisorDeTokens stub = u -> new EmisorDeTokens.TokenEmitido("token-de-" + u.id(), 3600);
 
-        servicio = new ServicioAutenticacion(fake, BCRYPT, stub);
+        servicio = new ServicioAutenticacion(fake, BCRYPT, stub, intentos);
     }
 
     @Test
@@ -76,5 +85,27 @@ class ServicioAutenticacionTest {
     void unUsuarioInactivoNoPuedeIniciarSesion() {
         assertThatThrownBy(() -> servicio.iniciarSesion("luis@biohub.co", CLAVE))
                 .isInstanceOf(CredencialesInvalidasException.class);
+    }
+
+    @Test
+    void despuesDeDiezClavesEquivocadasElCorreoQuedaBloqueadoAunqueLaClaveSeaCorrecta() {
+        String correo = "ana@biohub.co";
+        for (int i = 0; i < 10; i++) {
+            assertThatThrownBy(() -> servicio.iniciarSesion(correo, "mala"))
+                    .isInstanceOf(CredencialesInvalidasException.class);
+        }
+        assertThatThrownBy(() -> servicio.iniciarSesion(correo, CLAVE))
+                .isInstanceOf(DemasiadosIntentosException.class)
+                .hasMessageContaining("Espere 15 minutos");
+    }
+
+    @Test
+    void unInicioCorrectoBorraLosFallosAnteriores() {
+        for (int i = 0; i < 9; i++) {
+            assertThatThrownBy(() -> servicio.iniciarSesion("ana@biohub.co", "mala"))
+                    .isInstanceOf(CredencialesInvalidasException.class);
+        }
+        servicio.iniciarSesion("ana@biohub.co", CLAVE);
+        org.assertj.core.api.Assertions.assertThat(fallos).doesNotContainKey("ana@biohub.co");
     }
 }

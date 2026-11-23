@@ -157,8 +157,10 @@
       h('div', { class: 'cifras', style: 'margin-top:16px' },
         cifra('El ' + ui.fecha(c.fecha), h('em', null, c.especieEnEsaFecha.nombreCientifico)),
         cifra('Hoy', h('em', null, c.especieActual.nombreCientifico))),
-      c.cambioDesdeEntonces
-        ? [ui.mensaje('aviso', 'Cambió ' + c.cambiosDesdeEntonces.length + (c.cambiosDesdeEntonces.length === 1 ? ' vez' : ' veces') + ' desde esa fecha:'),
+      c.cambiosDesdeEntonces.length
+        ? [ui.mensaje('aviso', (c.cambioDesdeEntonces ? '' : 'Hoy tiene la misma especie que ese día, pero ')
+          + (c.cambioDesdeEntonces ? 'Cambió ' : 'cambió ') + c.cambiosDesdeEntonces.length
+          + (c.cambiosDesdeEntonces.length === 1 ? ' vez' : ' veces') + ' desde esa fecha:'),
           h('ul', null, c.cambiosDesdeEntonces.map((x) => h('li', null,
             ui.fechaHora(x.realizadaEn) + ': ', h('em', null, x.especieAnterior.nombreCientifico), ' → ',
             h('em', null, x.especieNueva.nombreCientifico), ' (' + x.autor.nombre + ': "' + x.motivo + '")')))]

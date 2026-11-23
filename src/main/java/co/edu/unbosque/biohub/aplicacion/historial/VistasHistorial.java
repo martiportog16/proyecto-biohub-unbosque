@@ -33,7 +33,10 @@ public final class VistasHistorial {
 
     /**
      * El estado en una fecha frente al estado actual (HU-07, criterio 3).
-     * Si en esa fecha el hallazgo aún no existía, "existiaEnEsaFecha" es false y "especieEnEsaFecha" es null.
+     * Si en esa fecha el hallazgo aún no existía, "existiaEnEsaFecha" es false, "especieEnEsaFecha" es null
+     * y "cambiosDesdeEntonces" va vacía.
+     * "cambioDesdeEntonces" dice si la especie de HOY es distinta a la de esa fecha. Puede ser false aunque
+     * haya cambios en el medio (de A a B y de vuelta a A): por eso también va la lista.
      */
     public record VistaComparacion(long hallazgoId, LocalDate fecha, boolean existiaEnEsaFecha,
                                    EspecieResumen especieEnEsaFecha, EspecieResumen especieActual,

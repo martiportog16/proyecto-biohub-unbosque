@@ -64,4 +64,36 @@ class AutenticacionIT extends BaseIT {
     void lasRutasPublicasNoPidenLogin() {
         given().get("/api/publico/estado").then().statusCode(200);
     }
+
+    @Test
+    void diezClavesEquivocadasBloqueanEseCorreoConUn429() {
+        // Un correo inventado, para no bloquear a los usuarios que usan las demás pruebas
+        String correo = "fuerza.bruta." + System.nanoTime() + "@biohub.co";
+        for (int i = 0; i < 10; i++) {
+            given().contentType("application/json").body(Map.of("correo", correo, "clave", "intento" + i))
+                .post("/api/cientifico/auth/login").then().statusCode(401);
+        }
+        given().contentType("application/json").body(Map.of("correo", correo, "clave", "otra"))
+            .post("/api/cientifico/auth/login")
+        .then()
+            .statusCode(429)
+            .header("Retry-After", "900")
+            .body("error", org.hamcrest.Matchers.containsString("Demasiados intentos fallidos"));
+    }
+
+    @Test
+    void losErroresDeFormaSalenEnEspanolYConElMismoFormato() {
+        given().contentType("application/json").body("{esto no es json")
+            .post("/api/cientifico/auth/login")
+            .then().statusCode(400).body("error", org.hamcrest.Matchers.startsWith("El cuerpo de la petición no es un JSON"));
+        given().contentType("application/json").body(Map.of("correo", "", "clave", ""))
+            .post("/api/cientifico/auth/login")
+            .then().statusCode(400).body("detalles", org.hamcrest.Matchers.hasItems("correo: es obligatorio", "clave: es obligatoria"));
+        // Con sesión, para que la seguridad no responda antes con 401
+        given().auth().oauth2(tokenDe("investigador@biohub.co")).delete("/api/cientifico/hallazgos")
+            .then().statusCode(405).body("error", equalTo("Esta dirección no acepta DELETE"));
+        given().contentType("text/plain").body("hola")
+            .post("/api/cientifico/auth/login")
+            .then().statusCode(415).body("error", org.hamcrest.Matchers.startsWith("Envíe los datos como JSON"));
+    }
 }

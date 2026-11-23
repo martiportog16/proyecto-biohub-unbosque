@@ -72,7 +72,7 @@ public class ServicioReclasificacion {
 
         long id = historial.registrar(nueva)
                 .orElseThrow(() -> new ConflictoException(
-                        "Otra persona reclasificó este hallazgo al mismo tiempo. Consulta el historial y vuelve a intentarlo."));
+                        "Otra persona reclasificó este hallazgo al mismo tiempo. Consulte el historial y vuelva a intentarlo."));
 
         // Secuencia 3, pasos 20 y 21: el hallazgo sale de la ficha pública de una especie y entra en la de otra
         cachePublica.hallazgosCambiaron(nueva.especieAnteriorId(), nueva.especieNuevaId());

@@ -2,14 +2,21 @@ package co.edu.unbosque.biohub.presentacion.comun;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import co.edu.unbosque.biohub.aplicacion.autenticacion.CredencialesInvalidasException;
+import co.edu.unbosque.biohub.aplicacion.autenticacion.DemasiadosIntentosException;
 import co.edu.unbosque.biohub.aplicacion.comun.ConflictoException;
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
@@ -55,6 +62,45 @@ public class ManejadorErrores {
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .toList();
         return responder(HttpStatus.BAD_REQUEST, "Datos de la petición inválidos", detalles);
+    }
+
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    ResponseEntity<RespuestaError> demasiadosIntentos(DemasiadosIntentosException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getSegundosDeEspera()))
+                .body(new RespuestaError(e.getMessage(), List.of()));
+    }
+
+    // ---- Errores de forma de la petición: el mismo formato {error, detalles} y en español.
+    // (Antes salían con el JSON de Spring, en inglés; lo notó la auditoría.)
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<RespuestaError> cuerpoIlegible(HttpMessageNotReadableException e) {
+        return responder(HttpStatus.BAD_REQUEST, "El cuerpo de la petición no es un JSON válido o tiene un valor con el tipo equivocado",
+                List.of());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<RespuestaError> parametroMalo(MethodArgumentTypeMismatchException e) {
+        return responder(HttpStatus.BAD_REQUEST, "Datos de la petición inválidos",
+                List.of(e.getName() + ": el valor '" + e.getValue() + "' no tiene el formato esperado"));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<RespuestaError> parametroFaltante(MissingServletRequestParameterException e) {
+        return responder(HttpStatus.BAD_REQUEST, "Datos de la petición inválidos",
+                List.of(e.getParameterName() + ": es obligatorio"));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<RespuestaError> metodoNoPermitido(HttpRequestMethodNotSupportedException e) {
+        return responder(HttpStatus.METHOD_NOT_ALLOWED, "Esta dirección no acepta " + e.getMethod(), List.of());
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<RespuestaError> tipoNoSoportado(HttpMediaTypeNotSupportedException e) {
+        return responder(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Envíe los datos como JSON (Content-Type: application/json)",
+                List.of());
     }
 
     private ResponseEntity<RespuestaError> responder(HttpStatus estado, String mensaje, List<String> detalles) {
