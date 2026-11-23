@@ -3,6 +3,7 @@ package co.edu.unbosque.biohub.aplicacion.autorizacion;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import co.edu.unbosque.biohub.dominio.coordenadas.AccesoCoordenadas;
 import co.edu.unbosque.biohub.dominio.coordenadas.ReglaAccesoCoordenadas;
 import co.edu.unbosque.biohub.dominio.coordenadas.ReglaAccesoCoordenadas.Motivo;
 import co.edu.unbosque.biohub.dominio.coordenadas.UbicacionExacta;
+import co.edu.unbosque.biohub.dominio.fichas.DatosDeUbicacion;
 import co.edu.unbosque.biohub.dominio.fichas.Especie;
 import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
 import co.edu.unbosque.biohub.dominio.usuarios.Usuario;
@@ -75,7 +77,11 @@ public class AutorizacionCoordenadas {
 
         autorizar(usuarioId, especie, hallazgoId);
 
-        return lectura.deHallazgo(hallazgoId).map(AutorizacionCoordenadas::vista)
+        // Ya autorizado: también los valores de la ficha que revelan la ubicación (ruta GPS, archivos)
+        Map<String, Object> datosDeUbicacion = fichas.fichaEnVersion(hallazgo.fichaEspecieId(), hallazgo.versionFicha())
+                .map(f -> DatosDeUbicacion.separar(f, hallazgo.valores()).ubicacion())
+                .orElse(Map.of());
+        return lectura.deHallazgo(hallazgoId).map(u -> vista(u, datosDeUbicacion))
                 .orElseThrow(() -> new NoEncontradoException("El hallazgo " + hallazgoId + " no tiene coordenada"));
     }
 
@@ -86,7 +92,7 @@ public class AutorizacionCoordenadas {
         autorizar(usuarioId, especie, null);
 
         List<VistaCoordenada> puntos = lectura.deEspecie(especieId, MAXIMO_PUNTOS_MAPA).stream()
-                .map(AutorizacionCoordenadas::vista).toList();
+                .map(u -> vista(u, Map.of())).toList();
         return new VistaMapa(especie.id(), especie.nombreCientifico(), especie.enPeligro(), puntos.size(), puntos);
     }
 
@@ -111,7 +117,7 @@ public class AutorizacionCoordenadas {
 
         if (!motivo.permite()) {
             throw new AccesoCoordenadasDenegadoException(motivo.descripcion()
-                    + ". Puedes ver el departamento en los datos del hallazgo.");
+                    + ". Puede ver el departamento en los datos del hallazgo.");
         }
     }
 
@@ -120,8 +126,8 @@ public class AutorizacionCoordenadas {
                 .orElseThrow(() -> new NoEncontradoException("No existe la especie " + especieId));
     }
 
-    private static VistaCoordenada vista(UbicacionExacta u) {
+    private static VistaCoordenada vista(UbicacionExacta u, Map<String, Object> datosDeUbicacion) {
         return new VistaCoordenada(u.hallazgoId(), u.departamento(), u.fechaObservacion(),
-                u.coordenada().latitud(), u.coordenada().longitud(), u.coordenada().precisionMetros());
+                u.coordenada().latitud(), u.coordenada().longitud(), u.coordenada().precisionMetros(), datosDeUbicacion);
     }
 }

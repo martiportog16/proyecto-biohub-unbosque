@@ -112,7 +112,11 @@
       h('section', { class: 'tarjeta' },
         h('h2', null, 'Datos de la especie'),
         valores.length ? h('table', null, h('tbody', null, valores.map(([k, v]) => fila(formularios.nombreBonito(k), texto(v)))))
-          : ui.vacio('Sin datos de ficha.')),
+          : ui.vacio('Sin datos de ficha.'),
+        // La ruta GPS y los archivos revelan la ubicación: el backend no los manda aquí (RNF-06)
+        (hallazgo.valoresProtegidos || []).length ? h('p', { class: 'suave pequeno' },
+          'Datos de ubicación protegidos: ', hallazgo.valoresProtegidos.map(formularios.nombreBonito).join(', '),
+          '. Se ven con "Ver la ubicación exacta", si su rol lo permite.') : null),
       h('section', { class: 'tarjeta' },
         h('h2', null, 'Ubicación'),
         h('p', null, 'Departamento: ', h('strong', null, hallazgo.departamento), '.'),

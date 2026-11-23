@@ -71,7 +71,7 @@ class ServicioRegistroHallazgosTest {
             public long crearEspecie(String a, String b, boolean c) { return 0; }
             public boolean existeNombreCientifico(String n) { return false; }
             public Optional<FichaTaxonomica> fichaVigente(long id) { return id == 7L ? Optional.of(ficha) : Optional.empty(); }
-            public Optional<FichaTaxonomica> fichaEnVersion(long id, int v) { return Optional.empty(); }
+            public Optional<FichaTaxonomica> fichaEnVersion(long id, int v) { return id == 7L && v == ficha.version() ? Optional.of(ficha) : Optional.empty(); }
             public void guardarVersion(FichaTaxonomica f, long a) { }
         };
         EscrituraCoordenadas spy = coordenadasGuardadas::put;
@@ -104,7 +104,7 @@ class ServicioRegistroHallazgosTest {
         servicio.registrar(hallazgo(HOY, "Meta", Map.of("conteo", 2), new NuevaCoordenada(4.0, -73.0, null)), 1L);
 
         assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isFalse();
-        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado no muestra conteos").isTrue();
+        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado vence solo en 3 s: no se recalcula en cada registro").isTrue();
     }
 
     @Test

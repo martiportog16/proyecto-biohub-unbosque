@@ -38,6 +38,8 @@ import co.edu.unbosque.biohub.persistencia.hallazgos.RepositorioHallazgos;
 @Service
 public class ServicioRegistroHallazgos {
 
+    /** 100 000 páginas de 50 = 5 millones de hallazgos: de sobra, y sin desbordar el OFFSET. */
+    static final int PAGINA_MAXIMA = 100_000;
     private static final int LIMITE_MAXIMO = 50;
 
     private final RepositorioHallazgos hallazgos;
@@ -95,16 +97,30 @@ public class ServicioRegistroHallazgos {
     }
 
     public VistaHallazgo consultar(long id) {
-        return hallazgos.buscar(id)
-                .map(VistaHallazgo::de)
+        Hallazgo h = hallazgos.buscar(id)
                 .orElseThrow(() -> new NoEncontradoException("No existe el hallazgo " + id));
+        return VistaHallazgo.de(h, fichaDe(h, new HashMap<>()));
     }
 
     public List<VistaHallazgo> listar(Long especieId, String departamento, int pagina) {
-        int desplazamiento = Math.max(pagina, 0) * LIMITE_MAXIMO;
+        if (pagina < 0 || pagina > PAGINA_MAXIMA) {
+            // Sin este tope, pagina * 50 se desborda y PostgreSQL recibe un OFFSET negativo (500)
+            throw new ReglaDeNegocioException("La página no es válida",
+                    List.of("pagina: debe estar entre 0 y " + PAGINA_MAXIMA));
+        }
+        int desplazamiento = pagina * LIMITE_MAXIMO;
+        // La ficha se pide una vez por especie y versión, no una vez por hallazgo
+        Map<String, FichaTaxonomica> fichasUsadas = new HashMap<>();
         return hallazgos.listar(especieId, departamento, LIMITE_MAXIMO, desplazamiento).stream()
-                .map(VistaHallazgo::de)
+                .map(h -> VistaHallazgo.de(h, fichaDe(h, fichasUsadas)))
                 .toList();
+    }
+
+    /** La ficha en la versión con que se registró el hallazgo: decide qué valores son de ubicación. */
+    private FichaTaxonomica fichaDe(Hallazgo h, Map<String, FichaTaxonomica> yaLeidas) {
+        return yaLeidas.computeIfAbsent(h.fichaEspecieId() + "/" + h.versionFicha(),
+                k -> fichas.fichaEnVersion(h.fichaEspecieId(), h.versionFicha())
+                        .orElseThrow(() -> new IllegalStateException("Falta la ficha del hallazgo " + h.id())));
     }
 
     private static Map<String, Object> sinNulos(Map<String, Object> valores) {

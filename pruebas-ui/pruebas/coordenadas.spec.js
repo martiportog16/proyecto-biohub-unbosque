@@ -98,3 +98,27 @@ test('solo el auditor ve el registro de accesos, y el analista no ve el mapa', a
   await entrarComo(page, USUARIOS.analista);
   await expect(page.getByRole('navigation').getByRole('link', { name: 'Mapa de coordenadas' })).toHaveCount(0);
 });
+
+test('la ruta GPS de una especie en peligro no aparece en el hallazgo; solo el alto rango la ve al pedir la ubicación', async ({ page }) => {
+  // Lo encontró la auditoría independiente: la ruta salía para cualquier rol
+  await entrarComo(page, USUARIOS.adminCientifico);
+  const especie = (await api(page, 'POST', '/especies', { nombreCientifico: 'Especie con ruta ui ' + Date.now(), nombreComun: 'Ruta',
+    enPeligro: true, atributos: [{ nombre: 'conteo', tipo: 'NUMERO', obligatorio: true }, { nombre: 'recorrido', tipo: 'RUTA_GPS', obligatorio: false }] })).cuerpo.especieId;
+  await page.getByRole('button', { name: 'Salir' }).click();
+  await entrarComo(page, USUARIOS.investigador);
+  const ayer = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const id = (await api(page, 'POST', '/hallazgos', { especieId: especie, fechaObservacion: ayer, departamento: 'Meta',
+    valores: { conteo: 1, recorrido: [{ lat: 4.111222, lon: -73.3 }, { lat: 4.12, lon: -73.31 }] },
+    coordenada: { latitud: 4.11, longitud: -73.29 } })).cuerpo.id;
+
+  await page.goto('/consola/#/hallazgos/' + id);
+  await expect(page.getByText('Datos de ubicación protegidos: Recorrido.', { exact: false })).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('4.111222');
+  await page.getByRole('button', { name: 'Salir' }).click();
+
+  await entrarComo(page, USUARIOS.altoRango);
+  await page.goto('/consola/#/hallazgos/' + id);
+  await page.getByRole('button', { name: 'Ver la ubicación exacta' }).click();
+  await expect(page.getByText('2 puntos de ruta (en rojo en el mapa)')).toBeVisible();
+  await expect(page.locator('.leaflet-overlay-pane path[stroke="#a3372a"]')).toHaveCount(1);
+});

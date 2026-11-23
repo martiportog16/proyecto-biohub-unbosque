@@ -133,4 +133,50 @@ class ConsumidoresIT extends BaseIT {
         given().auth().oauth2(admin).get("/api/cientifico/consumidores")
             .then().body("find { it.id == " + idOng + " }.limitePorMinuto", equalTo(5));
     }
+
+    @Test
+    void elAdministradorDaDeAltaUnaUniversidadYSuClaveFuncionaDeInmediato() {
+        String nombre = "Universidad de prueba " + System.nanoTime();
+        String apiKey = given().auth().oauth2(admin).contentType("application/json")
+                .body(Map.of("nombre", nombre))
+                .post("/api/cientifico/consumidores")
+            .then()
+                .statusCode(201)
+                .body("consumidor.nombre", equalTo(nombre))
+                .body("consumidor.limitePorMinuto", equalTo(100))   // S-05: límite inicial
+                .body("consumidor.activo", equalTo(true))
+                .extract().path("apiKey");
+
+        org.assertj.core.api.Assertions.assertThat(apiKey).startsWith("bh_").hasSizeGreaterThan(40);
+        // La clave sirve en la API externa sin reiniciar nada
+        given().header("X-API-Key", apiKey).get("/api/v1/estado").then().statusCode(200);
+        // ...pero nunca se vuelve a mostrar ni se guarda en claro
+        String lista = given().auth().oauth2(admin).get("/api/cientifico/consumidores").then().statusCode(200).extract().asString();
+        org.assertj.core.api.Assertions.assertThat(lista).contains(nombre).doesNotContain(apiKey);
+        long enClaro = jdbc.sql("SELECT count(*) FROM consumidor WHERE api_key_hash = :k").param("k", apiKey).query(Long.class).single();
+        org.assertj.core.api.Assertions.assertThat(enClaro).isZero();
+    }
+
+    @Test
+    void unAltaInvalidaOConNombreRepetidoResponde422() {
+        given().auth().oauth2(admin).contentType("application/json")
+            .body(Map.of("nombre", "x", "limitePorMinuto", 0))
+            .post("/api/cientifico/consumidores")
+            .then().statusCode(422)
+            .body("detalles", org.hamcrest.Matchers.containsInAnyOrder(
+                    "nombre: debe tener entre 3 y 120 caracteres", "limitePorMinuto: debe estar entre 1 y 10000"));
+        String existente = jdbc.sql("SELECT nombre FROM consumidor WHERE id = :id").param("id", idOng).query(String.class).single();
+        given().auth().oauth2(admin).contentType("application/json")
+            .body(Map.of("nombre", existente))
+            .post("/api/cientifico/consumidores")
+            .then().statusCode(422)
+            .body("detalles[0]", org.hamcrest.Matchers.startsWith("nombre: ya existe"));
+    }
+
+    @Test
+    void soloElAdministradorDeLaPlataformaDaDeAlta() {
+        given().auth().oauth2(tokenDe("admin.cientifico@biohub.co")).contentType("application/json")
+            .body(Map.of("nombre", "Intento sin permiso"))
+            .post("/api/cientifico/consumidores").then().statusCode(403);
+    }
 }

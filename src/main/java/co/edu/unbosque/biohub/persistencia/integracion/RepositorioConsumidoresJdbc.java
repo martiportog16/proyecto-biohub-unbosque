@@ -53,4 +53,19 @@ public class RepositorioConsumidoresJdbc implements RepositorioConsumidores, Adm
         return new Consumidor(rs.getLong("id"), rs.getString("nombre"),
                 rs.getInt("limite_por_minuto"), rs.getBoolean("activo"));
     }
+
+    @Override
+    public boolean existeNombre(String nombre) {
+        return jdbc.sql("SELECT count(*) FROM consumidor WHERE lower(nombre) = lower(:n)")
+                .param("n", nombre).query(Long.class).single() > 0;
+    }
+
+    @Override
+    public long crear(String nombre, String huellaApiKey, int limitePorMinuto) {
+        return jdbc.sql("""
+                INSERT INTO consumidor (nombre, api_key_hash, limite_por_minuto)
+                VALUES (:nombre, :huella, :limite) RETURNING id""")
+                .param("nombre", nombre).param("huella", huellaApiKey).param("limite", limitePorMinuto)
+                .query(Long.class).single();
+    }
 }

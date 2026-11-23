@@ -18,6 +18,16 @@
 
   const CIENTIFICOS = ['INVESTIGADOR', 'ADMINISTRADOR_CIENTIFICO', 'DIRECTOR_CIENTIFICO', 'AUDITOR_CIENTIFICO', 'ALTO_RANGO'];
   const LIMITES = { sur: -4.3, oeste: -82, norte: 13.6, este: -66.8 };
+  // Colombia continental (sin San Andrés, que queda muy al oeste y achica todo el mapa)
+  const CONTINENTAL = [[-4.3, -79.1], [12.5, -66.8]];
+
+  // Colores de los departamentos según el tema del sistema: en oscuro, relleno oscuro y borde claro
+  function estiloDepartamentos() {
+    const oscuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return oscuro
+      ? { color: '#6f8a7d', weight: 1, fillColor: '#2a3a32', fillOpacity: 1 }
+      : { color: '#7f978a', weight: 1, fillColor: '#d9e7dd', fillOpacity: 1 };
+  }
   let departamentos = null;
 
   BioHub.registrar({
@@ -96,7 +106,7 @@
     try {
       if (!departamentos) departamentos = await (await fetch('datos/colombia-departamentos.geojson')).json();
       L.geoJSON(departamentos, {
-        style: { color: '#7d9188', weight: 1, fillColor: '#dfe9e3', fillOpacity: 0.55 },
+        style: estiloDepartamentos(),
         // El nombre va como elemento, no como texto HTML (Leaflet usa innerHTML con los textos)
         onEachFeature: (f, capa) => capa.bindTooltip(h('span', null, f.properties.nombre), { sticky: true, direction: 'top' })
       }).addTo(mapa);
@@ -106,8 +116,11 @@
     const capa = L.featureGroup(puntos.map((p) => L.circleMarker([p.latitud, p.longitud], {
       radius: 7, color: '#ffffff', weight: 2, fillColor: '#a3372a', fillOpacity: 0.9
     }).bindPopup(() => popup(p)))).addTo(mapa);
-    mapa.fitBounds(capa.getBounds().pad(0.3), { maxZoom: 7 });   // se ve la región; con la rueda se acerca
-    if (puntos.length === 1) mapa.setZoom(8);
+    // Siempre se ve el país entero con los puntos encima; con la rueda o el + se acerca.
+    // (Antes se acercaba al punto y con uno solo quedaba dentro de un departamento, sin referencia.)
+    const vista = L.latLngBounds(CONTINENTAL);
+    if (puntos.length) vista.extend(capa.getBounds());
+    mapa.fitBounds(vista, { padding: [12, 12] });
     return mapa;
   }
 
@@ -144,10 +157,22 @@
         const p = await ui.conBotonOcupado(boton, () => api.get('/hallazgos/' + hallazgo.id + '/coordenada'), 'Consultando…');
         boton.hidden = true;
         const lienzo = h('div', { class: 'mapa mapa-pequeno', role: 'region', 'aria-label': 'Ubicación del hallazgo' });
+        const extra = Object.entries(p.datosDeUbicacion || {});
         vaciar(zona, ui.mensaje('info', 'Su consulta quedó registrada.'),
           h('p', null, h('code', null, p.latitud.toFixed(6) + ', ' + p.longitud.toFixed(6)),
-            p.precisionMetros ? ' (± ' + p.precisionMetros + ' m)' : ''), lienzo);
-        await dibujar(lienzo, [p]);
+            p.precisionMetros ? ' (± ' + p.precisionMetros + ' m)' : ''),
+          extra.length ? h('table', null, h('tbody', null, extra.map(([nombre, valor]) => h('tr', null,
+            h('th', { style: 'width:35%' }, BioHub.formularios.nombreBonito(nombre)),
+            h('td', null, Array.isArray(valor) ? valor.length + ' puntos de ruta (en rojo en el mapa)' : String(valor)))))) : null,
+          lienzo);
+        const mapa = await dibujar(lienzo, [p]);
+        // Las rutas GPS (lista de {lat, lon}) se dibujan como una línea
+        for (const [, valor] of extra) {
+          if (Array.isArray(valor) && valor.every((x) => x && typeof x.lat === 'number')) {
+            const linea = L.polyline(valor.map((x) => [x.lat, x.lon]), { color: '#a3372a', weight: 3 }).addTo(mapa);
+            mapa.fitBounds(linea.getBounds().extend([p.latitud, p.longitud]).pad(0.5), { maxZoom: 13 });
+          }
+        }
       } catch (err) {
         vaciar(zona, err.estado === 403
           ? ui.mensaje('error', err.message, ['Esta consulta negada también quedó en el registro de accesos.'])

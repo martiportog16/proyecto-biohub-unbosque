@@ -50,6 +50,16 @@ class HallazgosIT extends BaseIT {
     }
 
     @Test
+    void unaPaginaFueraDeRangoResponde422YNoUnErrorDelServidor() {
+        // La auditoría encontró que pagina=2147483647 desbordaba el OFFSET y daba 500
+        for (String pagina : new String[] {"2147483647", "-1"}) {
+            given().auth().oauth2(investigador).get("/api/cientifico/hallazgos?pagina=" + pagina)
+                .then().statusCode(422)
+                .body("detalles", org.hamcrest.Matchers.hasItem("pagina: debe estar entre 0 y 100000"));
+        }
+    }
+
+    @Test
     void losDepartamentosSonLos33EnOrdenAlfabetico() {
         given().auth().oauth2(investigador).get("/api/cientifico/hallazgos/departamentos")
         .then()
