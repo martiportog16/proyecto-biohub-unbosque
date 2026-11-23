@@ -29,11 +29,13 @@ Las decisiones y su justificación están en `docs/` y en el documento *BioHub �
 
 | Documento | Para qué |
 | --- | --- |
-| [`docs/trazabilidad.md`](docs/trazabilidad.md) | Dónde quedó cada cosa del Entregable 2: módulos, secuencias, tácticas, pruebas y patrones |
+| [`docs/trazabilidad.md`](docs/trazabilidad.md) | Dónde quedó cada cosa del Entregable 2: módulos, secuencias, tácticas, pruebas, patrones, SOLID, pantallas por rol y cómo se resolvió cada decisión pendiente (P-01 a P-32) |
+| [`docs/arquitectura-c4.md`](docs/arquitectura-c4.md) | C4 tal como quedó: contexto y contenedores con tecnologías y protocolos, y despliegue |
 | [`docs/modelo-de-datos.md`](docs/modelo-de-datos.md) | Diagrama entidad-relación de la base **real** y los permisos de cada usuario |
 | [`docs/guia-disponibilidad.md`](docs/guia-disponibilidad.md) | Caídas, promoción de réplica, red y monitoreo de salud |
 | [`docs/guia-pruebas-carga.md`](docs/guia-pruebas-carga.md) | Pruebas de carga y sus resultados |
 | [`docs/prueba-usabilidad.md`](docs/prueba-usabilidad.md) | Guion y hoja de registro de la prueba con 10 personas (RNF-10) |
+| [`docs/plan-de-paquetes.md`](docs/plan-de-paquetes.md) | Los 27 paquetes de trabajo: orden, dueño y qué deja cada uno |
 
 ## Cómo levantarlo
 
@@ -168,3 +170,4 @@ Para que nadie choque con el número de versión de Flyway:
 | V7 | Informes mensuales | Daniel |
 | V8 | Grupos taxonómicos y fichas por grupo | Daniel |
 | V9 | Equipos de campo | Daniel |
+| V10 | Segundo investigador de demostración (responsable de equipos) | Paula |
