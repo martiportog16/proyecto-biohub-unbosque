@@ -134,3 +134,14 @@ tr.clic:hover td { background: var(--fondo); }
 .error-campo { color: var(--alerta); font-weight: 600; }
 [aria-invalid=true] { border-color: var(--alerta); }
 a.boton.secundario { background: transparent; color: var(--marca); border-color: var(--borde); }
+
+/* Mapa de coordenadas (paquete 20) */
+.mapa { height: 480px; border: 1px solid var(--borde); border-radius: 12px; margin: 12px 0 16px; background: var(--fondo); }
+.mapa-pequeno { height: 260px; }
+.leaflet-container { font: inherit; background: #eef3f6; }
+@media (prefers-color-scheme: dark) { .leaflet-container { background: #1a2328; } }
+.leaflet-popup-content { font-size: .9rem; line-height: 1.5; }
+.leaflet-popup-content a { color: #1d6b4b; }
+@media (max-width: 760px) { .mapa { height: 360px; } }
+details.tarjeta summary { cursor: pointer; color: var(--marca); font-weight: 600; }
+.oculto-visual { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

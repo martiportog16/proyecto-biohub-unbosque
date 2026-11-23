@@ -13,3 +13,6 @@ Dockerfile text eol=lf
 *.png  binary
 mvnw   text eol=lf
 *.cmd  text eol=crlf
+
+# Librerías de terceros: se guardan idénticas a la versión oficial (sin cambiar fines de línea)
+infra/nginx/html/consola/vendor/** -text

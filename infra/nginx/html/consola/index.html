@@ -13,6 +13,7 @@
     Cada pantalla es un archivo en js/modulos/ que se registra solo (BioHub.registrar).
     Para agregar una pantalla: crear el archivo y agregar su <script> antes de app.js.
   -->
+  <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css">
   <link rel="stylesheet" href="css/consola.css">
 </head>
 <body>
@@ -57,6 +58,7 @@
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
+  <script src="vendor/leaflet-1.9.4/leaflet.js"></script>
   <script src="js/nucleo.js"></script>
   <script src="js/catalogo.js"></script>
   <script src="js/formularios.js"></script>
@@ -68,7 +70,9 @@
   <script src="js/modulos/equipos.js"></script>
   <script src="js/modulos/informes.js"></script>
   <script src="js/modulos/historial.js"></script>
-  <!-- Las pantallas del paquete 20 se agregan aquí -->
+  <script src="js/modulos/mapa.js"></script>
+  <script src="js/modulos/accesos.js"></script>
+  <script src="js/modulos/consumidores.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
