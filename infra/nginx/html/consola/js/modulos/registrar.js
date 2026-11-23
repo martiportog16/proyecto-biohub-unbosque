@@ -31,8 +31,8 @@
     const departamento = h('select', { id: 'departamento', required: true },
       h('option', { value: '' }, 'Escoja el departamento…'),
       departamentos.map((d) => h('option', { value: d }, d)));
-    const latitud = h('input', { type: 'number', id: 'latitud', step: 'any', min: -90, max: 90, required: true, inputmode: 'decimal' });
-    const longitud = h('input', { type: 'number', id: 'longitud', step: 'any', min: -180, max: 180, required: true, inputmode: 'decimal' });
+    const latitud = h('input', { type: 'number', id: 'latitud', step: 'any', min: -4.3, max: 13.6, required: true, inputmode: 'decimal' });
+    const longitud = h('input', { type: 'number', id: 'longitud', step: 'any', min: -82, max: -66.8, required: true, inputmode: 'decimal' });
     const precision = h('input', { type: 'number', id: 'precision', min: 0, step: 1, inputmode: 'numeric' });
     const zonaFicha = h('div', null, h('p', { class: 'suave' }, 'Escoja una especie para ver sus campos.'));
     const resultado = h('div', { 'aria-live': 'polite' });
