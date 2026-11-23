@@ -83,7 +83,9 @@
 
   function disponibles() {
     const s = sesion.actual();
-    return modulos.filter((m) => !m.roles || m.roles.includes(s.rol));
+    // "menu" (si la pantalla lo define) dice quién la ve en el menú: los actores de su caso de uso.
+    // "roles" dice quién puede abrirla por dirección; el permiso real lo decide el backend.
+    return modulos.filter((m) => (m.menu || m.roles || null) === null || (m.menu || m.roles).includes(s.rol));
   }
 
   function entrar() {

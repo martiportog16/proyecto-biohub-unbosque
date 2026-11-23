@@ -1,6 +1,6 @@
 // Paquete 18: equipos de campo desde la consola (HU-03).
 const { test, expect } = require('@playwright/test');
-const { USUARIOS, entrarComo } = require('./ayuda');
+const { USUARIOS, entrarComo, api } = require('./ayuda');
 
 test('registrar un equipo, pasarlo a otra persona y ver el historial', async ({ page }) => {
   await entrarComo(page, USUARIOS.investigador);
@@ -18,15 +18,17 @@ test('registrar un equipo, pasarlo a otra persona y ver el historial', async ({ 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(codigo);
   await expect(page.locator('.cifra').first()).toContainText('Ana Investigadora');
 
+  // Solo se le puede pasar a un investigador (HU-03, criterio 1)
+  await expect(page.locator('#reasignar-responsable option', { hasText: 'Marta Directora' })).toHaveCount(0);
   // Sin motivo, el backend lo rechaza y lo dice junto al campo
-  const marta = await page.locator('#reasignar-responsable option', { hasText: 'Marta Directora' }).getAttribute('value');
-  await page.getByLabel('Nuevo responsable').selectOption(marta);
+  const carlos = await page.locator('#reasignar-responsable option', { hasText: 'Carlos Investigador' }).getAttribute('value');
+  await page.getByLabel('Nuevo responsable').selectOption(carlos);
   await page.getByRole('button', { name: 'Pasar el equipo' }).click();
   await expect(page.locator('[data-error="motivo"]')).toContainText('al menos 5 caracteres');
 
   await page.getByLabel('Motivo').fill('Ana sale de vacaciones');
   await page.getByRole('button', { name: 'Pasar el equipo' }).click();
-  await expect(page.locator('.cifra').first()).toContainText('Marta Directora');
+  await expect(page.locator('.cifra').first()).toContainText('Carlos Investigador');
   const filas = page.locator('section', { hasText: 'Historial de responsables' }).locator('tbody tr');
   await expect(filas).toHaveCount(2);
   await expect(filas.first()).toContainText('Ana sale de vacaciones');
@@ -49,13 +51,10 @@ test('sin responsable no se puede registrar un equipo (HU-03, criterio 4)', asyn
   await expect(page.locator('[data-error="responsableId"]')).toContainText('sin responsable');
 });
 
-test('el auditor consulta los equipos pero no los registra; el analista ni los ve', async ({ page }) => {
+test('los equipos son del investigador (CU-03 y CU-04): el auditor no los ve y la API le responde 403', async ({ page }) => {
   await entrarComo(page, USUARIOS.auditor);
-  await page.getByRole('navigation').getByRole('link', { name: 'Equipos de campo' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Equipos de campo');
-  await expect(page.getByRole('link', { name: '+ Registrar equipo' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Salir' }).click();
-
-  await entrarComo(page, USUARIOS.analista);
   await expect(page.getByRole('navigation').getByRole('link', { name: 'Equipos de campo' })).toHaveCount(0);
+  await page.goto('/consola/#/equipos');
+  await expect(page.getByRole('alert')).toContainText('no tiene acceso a esta pantalla');
+  expect((await api(page, 'GET', '/equipos')).estado).toBe(403);
 });

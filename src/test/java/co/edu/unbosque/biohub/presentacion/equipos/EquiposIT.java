@@ -47,7 +47,7 @@ class EquiposIT extends BaseIT {
         String codigo = codigoNuevo();
         int id = registrar(codigo, 1);
 
-        given().auth().oauth2(tokenDe("auditor@biohub.co")).get("/api/cientifico/equipos/{id}", id)
+        given().auth().oauth2(investigador).get("/api/cientifico/equipos/{id}", id)
             .then().statusCode(200)
             .body("codigo", equalTo(codigo))
             .body("responsable.nombre", equalTo("Ana Investigadora"));
@@ -75,43 +75,59 @@ class EquiposIT extends BaseIT {
             .rootCause().hasMessageContaining("responsable_id");
     }
 
+    private long carlos() {   // el segundo investigador de demostración (V10)
+        return jdbc.sql("SELECT id FROM usuario WHERE correo = 'investigador2@biohub.co'").query(Long.class).single();
+    }
+
     @Test
     void reasignarCambiaElResponsableYGuardaElHistorial() {
         int id = registrar(codigoNuevo(), 1);
 
-        given().auth().oauth2(tokenDe("director@biohub.co")).contentType("application/json")
-            .body(Map.of("responsableId", 3, "motivo", "Ana sale de vacaciones"))
+        given().auth().oauth2(investigador).contentType("application/json")
+            .body(Map.of("responsableId", carlos(), "motivo", "Ana sale de vacaciones"))
             .put("/api/cientifico/equipos/{id}/responsable", id)
         .then()
             .statusCode(200)
-            .body("responsable.nombre", equalTo("Marta Directora"));
+            .body("responsable.nombre", equalTo("Carlos Investigador"));
 
         given().auth().oauth2(investigador).get("/api/cientifico/equipos/{id}/asignaciones", id)
             .then().statusCode(200)
             .body("motivo", contains("Registro del equipo", "Ana sale de vacaciones"))
-            .body("responsable", contains("Ana Investigadora", "Marta Directora"));
+            .body("responsable", contains("Ana Investigadora", "Carlos Investigador"));
         given().auth().oauth2(investigador).get("/api/cientifico/equipos?responsableId=1")
             .then().statusCode(200).body("id", not(hasItem(id)));
     }
 
     @Test
-    void unAnalistaNoEsResponsablePosibleNiPuedeVerLosEquipos() {
-        Map<String, Object> cuerpo = Map.of("codigo", codigoNuevo(), "tipo", "GPS", "responsableId", 6);
-        given().auth().oauth2(investigador).contentType("application/json").body(cuerpo)
-            .post("/api/cientifico/equipos")
-            .then().statusCode(422).body("detalles", hasItem("responsableId: Pedro Analista no es personal científico"));
-
+    void elResponsableDebeSerUnInvestigador() {   // criterio 1: "un investigador responsable"
+        for (long otro : new long[] {3, 6}) {     // Marta Directora (científica, pero no investigadora) y Pedro Analista
+            Map<String, Object> cuerpo = Map.of("codigo", codigoNuevo(), "tipo", "GPS", "responsableId", otro);
+            given().auth().oauth2(investigador).contentType("application/json").body(cuerpo)
+                .post("/api/cientifico/equipos")
+                .then().statusCode(422).body("detalles[0]", org.hamcrest.Matchers.endsWith("no es investigador"));
+        }
         given().auth().oauth2(investigador).get("/api/cientifico/equipos/responsables-posibles")
-            .then().statusCode(200).body("nombre", not(hasItem("Pedro Analista")));
-        given().auth().oauth2(tokenDe("analista@biohub.co")).get("/api/cientifico/equipos")
-            .then().statusCode(403);
+            .then().statusCode(200)
+            .body("nombre", hasItem("Carlos Investigador"))
+            .body("nombre", not(hasItem("Marta Directora")))
+            .body("nombre", not(hasItem("Pedro Analista")));
     }
 
-    @Test
-    void elAuditorConsultaPeroNoRegistra() {
-        given().auth().oauth2(tokenDe("auditor@biohub.co")).contentType("application/json")
+    /** CU-03 y CU-04 son del investigador: los demás roles reciben 403 al consultar y al asignar. */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "admin.cientifico@biohub.co", "director@biohub.co", "auditor@biohub.co", "altorango@biohub.co",
+            "analista@biohub.co", "admin.plataforma@biohub.co"})
+    void soloElInvestigadorUsaLosEquipos(String correo) {
+        int id = registrar(codigoNuevo(), 1);
+        String token = tokenDe(correo);
+        given().auth().oauth2(token).get("/api/cientifico/equipos").then().statusCode(403);
+        given().auth().oauth2(token).get("/api/cientifico/equipos/{id}", id).then().statusCode(403);
+        given().auth().oauth2(token).contentType("application/json")
             .body(Map.of("codigo", codigoNuevo(), "tipo", "GPS", "responsableId", 1))
-            .post("/api/cientifico/equipos")
-            .then().statusCode(403);
+            .post("/api/cientifico/equipos").then().statusCode(403);
+        given().auth().oauth2(token).contentType("application/json")
+            .body(Map.of("responsableId", 1, "motivo", "Intento sin permiso"))
+            .put("/api/cientifico/equipos/{id}/responsable", id).then().statusCode(403);
     }
 }

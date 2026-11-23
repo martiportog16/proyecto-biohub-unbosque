@@ -41,17 +41,18 @@ test('el alto rango ve en el mapa una especie en peligro, sin pedir nada a sitio
   expect(errores).toEqual([]);
 });
 
-test('el investigador no ve la especie en peligro: la autorización lo niega y lo dice', async ({ page }) => {
+test('el investigador no tiene el mapa en el menú; si llega por un enlace, la autorización lo niega y lo dice', async ({ page }) => {
   await entrarComo(page, USUARIOS.investigador);
-  await page.goto('/consola/#/mapa');
-  await page.getByLabel('Especie').selectOption(String(MONO));
+  await expect(page.getByRole('navigation').getByRole('link', { name: 'Mapa de coordenadas' })).toHaveCount(0);
+  await page.goto('/consola/#/mapa/' + MONO);   // un enlace que alguien le compartió
+  await expect(page.getByText('Usted llegó por un enlace')).toBeVisible();
   await page.getByRole('button', { name: 'Ver en el mapa' }).click();
   await expect(page.getByRole('alert')).toContainText('solo las ve el personal científico de alto rango');
   await expect(page.getByRole('alert')).toContainText('quedó en el registro de accesos');
   await expect(page.locator('.leaflet-container')).toHaveCount(0);
 });
 
-test('el investigador sí ve una especie fuera de peligro, y la ubicación exacta desde el hallazgo', async ({ page }) => {
+test('por un enlace, el investigador sí ve una especie fuera de peligro (P-24); la ubicación exacta del hallazgo es del alto rango', async ({ page }) => {
   expect((await (await page.request.get('/api/publico/especies/' + MIRLA)).json()).enPeligro).toBe(false);
   const id = await hallazgoDe(page, MIRLA);
   await entrarComo(page, USUARIOS.investigador);
@@ -60,6 +61,13 @@ test('el investigador sí ve una especie fuera de peligro, y la ubicación exact
   await expect(page.getByText('Su consulta quedó registrada.')).toBeVisible();
   await expect(page.locator('.leaflet-container')).toBeVisible();
 
+  // En el detalle del hallazgo, el investigador no tiene el botón: CU-08 es del alto rango
+  await page.goto('/consola/#/hallazgos/' + id);
+  await expect(page.getByText('solo la consulta el personal científico de alto rango')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ver la ubicación exacta' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Salir' }).click();
+
+  await entrarComo(page, USUARIOS.altoRango);
   await page.goto('/consola/#/hallazgos/' + id);
   await expect(page.locator('main')).not.toContainText('3.987654');   // no se muestra hasta pedirla
   await page.getByRole('button', { name: 'Ver la ubicación exacta' }).click();

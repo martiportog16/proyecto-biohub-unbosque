@@ -19,6 +19,7 @@ import co.edu.unbosque.biohub.aplicacion.equipos.VistasEquipos.VistaEquipo;
 import co.edu.unbosque.biohub.aplicacion.equipos.VistasEquipos.VistaPersona;
 import co.edu.unbosque.biohub.dominio.equipos.EquipoCampo;
 import co.edu.unbosque.biohub.dominio.equipos.ReglaDeEquipoException;
+import co.edu.unbosque.biohub.dominio.usuarios.Rol;
 import co.edu.unbosque.biohub.dominio.usuarios.Usuario;
 import co.edu.unbosque.biohub.persistencia.equipos.RepositorioEquipos;
 import co.edu.unbosque.biohub.persistencia.usuarios.DirectorioPersonal;
@@ -29,7 +30,7 @@ import co.edu.unbosque.biohub.persistencia.usuarios.RepositorioUsuarios;
  *
  * Secuencia 6 del Entregable 2: el equipo se crea con su responsable, que se comprueba en
  * el repositorio de usuarios (C-2). El responsable debe existir, estar activo y ser
- * personal científico.
+ * investigador (HU-03, criterio 1: "un investigador responsable").
  */
 @Service
 public class ServicioEquipos {
@@ -99,10 +100,10 @@ public class ServicioEquipos {
                 .toList();
     }
 
-    /** Para la lista de selección: el personal científico activo. */
+    /** Para la lista de selección: los investigadores activos (HU-03, criterio 1). */
     public List<VistaPersona> responsablesPosibles() {
         return directorio.activos().stream()
-                .filter(u -> u.rol().esCientifico())
+                .filter(u -> u.rol() == Rol.INVESTIGADOR)
                 .map(ServicioEquipos::persona)
                 .toList();
     }
@@ -114,9 +115,9 @@ public class ServicioEquipos {
             throw new ReglaDeNegocioException("El responsable no es válido",
                     List.of("responsableId: " + u.nombre() + " está inactivo"));
         }
-        if (!u.rol().esCientifico()) {
+        if (u.rol() != Rol.INVESTIGADOR) {   // HU-03, criterio 1: "un investigador responsable"
             throw new ReglaDeNegocioException("El responsable no es válido",
-                    List.of("responsableId: " + u.nombre() + " no es personal científico"));
+                    List.of("responsableId: " + u.nombre() + " no es investigador"));
         }
         return u;
     }

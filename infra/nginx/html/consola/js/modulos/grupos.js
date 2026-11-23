@@ -8,14 +8,13 @@
   const { api, h, vaciar, ui, sesion, catalogo, formularios, fichas } = window.BioHub;
   const { error, limpiarErrores, marcarErrores } = formularios;
 
-  const CIENTIFICOS = ['INVESTIGADOR', 'ADMINISTRADOR_CIENTIFICO', 'DIRECTOR_CIENTIFICO', 'AUDITOR_CIENTIFICO', 'ALTO_RANGO'];
   const esAdmin = () => sesion.tiene('ADMINISTRADOR_CIENTIFICO');
 
   BioHub.registrar({
     id: 'grupos',
     titulo: 'Grupos taxonómicos',
     grupo: 'Fichas taxonómicas',
-    roles: CIENTIFICOS,
+    roles: ['ADMINISTRADOR_CIENTIFICO'],   // CU-02: definir o modificar atributos de una ficha
     resumen: 'Una ficha para todo un grupo (por ejemplo, las aves) que llega a sus especies.',
     mostrar(contenedor, [id]) {
       return id ? detalle(contenedor, id) : lista(contenedor);

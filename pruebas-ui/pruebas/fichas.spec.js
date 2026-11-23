@@ -49,14 +49,16 @@ test('un atributo con nombre repetido muestra el motivo junto al campo', async (
   await expect(page.locator('form [data-error="nombre"]')).toContainText('ya existe');
 });
 
-test('el investigador consulta las fichas pero no puede cambiarlas', async ({ page }) => {
+test('las fichas y los grupos son del administrador científico (CU-02): otro rol que llega por la dirección no entra', async ({ page }) => {
   await entrarComo(page, USUARIOS.investigador);
-  await page.goto('/consola/#/especies');
-  await expect(page.getByRole('link', { name: 'Nueva especie' })).toHaveCount(0);
-  await page.locator('tbody tr').first().click();
-  await expect(page.getByRole('heading', { name: /Ficha vigente/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retirar/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Agregar atributo' })).toHaveCount(0);
+  await expect(page.getByRole('navigation').getByRole('link', { name: 'Especies y fichas' })).toHaveCount(0);
+  for (const ruta of ['#/especies', '#/grupos']) {
+    await page.goto('/consola/' + ruta);
+    await expect(page.getByRole('alert')).toContainText('no tiene acceso a esta pantalla');
+  }
+  // El investigador sí ve la ficha donde la necesita: en el formulario de registro (CU-01)
+  await page.getByRole('navigation').getByRole('link', { name: 'Registrar hallazgo' }).click();
+  await expect(page.getByLabel('Especie')).toBeVisible();
 });
 
 test('un atributo agregado al grupo llega a la especie que hereda (HU-02, criterio 4)', async ({ page }) => {
