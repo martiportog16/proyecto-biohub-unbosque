@@ -27,7 +27,8 @@ import co.edu.unbosque.biohub.persistencia.usuarios.RepositorioUsuarios;
 
 /**
  * Equipos de campo sin base de datos (S20, S21). Repositorios FAKE en memoria.
- * Usuarios: 1 investigadora, 2 director, 3 analista (no científico), 4 investigador inactivo.
+ * Usuarios: 1 investigadora, 2 directora (científica, pero no investigadora), 3 analista,
+ * 4 investigador inactivo, 5 investigador.
  */
 class ServicioEquiposTest {
 
@@ -35,7 +36,8 @@ class ServicioEquiposTest {
             1L, new Usuario(1L, "ana@biohub.co", "Ana", "", Rol.INVESTIGADOR, true),
             2L, new Usuario(2L, "marta@biohub.co", "Marta", "", Rol.DIRECTOR_CIENTIFICO, true),
             3L, new Usuario(3L, "pedro@biohub.co", "Pedro", "", Rol.ANALISTA, true),
-            4L, new Usuario(4L, "luis@biohub.co", "Luis", "", Rol.INVESTIGADOR, false));
+            4L, new Usuario(4L, "luis@biohub.co", "Luis", "", Rol.INVESTIGADOR, false),
+            5L, new Usuario(5L, "carlos@biohub.co", "Carlos", "", Rol.INVESTIGADOR, true));
 
     private EquiposEnMemoria repositorio;
     private ServicioEquipos servicio;
@@ -61,10 +63,12 @@ class ServicioEquiposTest {
     }
 
     @Test
-    void elResponsableDebeSerPersonalCientificoActivo() {
-        assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("GPS-1", "GPS", null, 3L), 2L))
+    void elResponsableDebeSerUnInvestigadorActivo() {   // HU-03, criterio 1
+        assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("GPS-1", "GPS", null, 3L), 1L))
                 .isInstanceOf(ReglaDeNegocioException.class)
-                .hasFieldOrPropertyWithValue("detalles", List.of("responsableId: Pedro no es personal científico"));
+                .hasFieldOrPropertyWithValue("detalles", List.of("responsableId: Pedro no es investigador"));
+        assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("GPS-1", "GPS", null, 2L), 1L))
+                .hasFieldOrPropertyWithValue("detalles", List.of("responsableId: Marta no es investigador"));
         assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("GPS-1", "GPS", null, 4L), 2L))
                 .hasFieldOrPropertyWithValue("detalles", List.of("responsableId: Luis está inactivo"));
         assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("GPS-1", "GPS", null, 99L), 2L))
@@ -76,7 +80,7 @@ class ServicioEquiposTest {
     void elCodigoNoSePuedeRepetir() {
         servicio.registrar(new NuevoEquipo("CAM-1", "CAMARA_TRAMPA", null, 1L), 2L);
 
-        assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("cam-1", "SENSOR", null, 2L), 2L))
+        assertThatThrownBy(() -> servicio.registrar(new NuevoEquipo("cam-1", "SENSOR", null, 5L), 1L))
                 .hasFieldOrPropertyWithValue("detalles", List.of("codigo: ya existe un equipo con el código CAM-1"));
     }
 
@@ -84,9 +88,9 @@ class ServicioEquiposTest {
     void reasignarDejaRastroEnElHistorial() {
         long id = servicio.registrar(new NuevoEquipo("SEN-1", "SENSOR", null, 1L), 2L).id();
 
-        var equipo = servicio.reasignar(id, new Reasignacion(2L, "Ana sale de vacaciones"), 2L);
+        var equipo = servicio.reasignar(id, new Reasignacion(5L, "Ana sale de vacaciones"), 1L);
 
-        assertThat(equipo.responsable().id()).isEqualTo(2L);
+        assertThat(equipo.responsable().id()).isEqualTo(5L);
         assertThat(servicio.asignaciones(id)).extracting(VistasEquipos.VistaAsignacion::motivo)
                 .containsExactly("Registro del equipo", "Ana sale de vacaciones");
     }
@@ -96,15 +100,15 @@ class ServicioEquiposTest {
         long id = servicio.registrar(new NuevoEquipo("SEN-2", "SENSOR", null, 1L), 2L).id();
         repositorio.simularCambioConcurrente = true;
 
-        assertThatThrownBy(() -> servicio.reasignar(id, new Reasignacion(2L, "cambio de turno"), 2L))
+        assertThatThrownBy(() -> servicio.reasignar(id, new Reasignacion(5L, "cambio de turno"), 1L))
                 .isInstanceOf(ConflictoException.class);
         assertThat(servicio.asignaciones(id)).hasSize(1);
     }
 
     @Test
-    void losResponsablesPosiblesSonSoloElPersonalCientificoActivo() {
+    void losResponsablesPosiblesSonSoloLosInvestigadoresActivos() {
         assertThat(servicio.responsablesPosibles()).extracting(VistasEquipos.VistaPersona::id)
-                .containsExactlyInAnyOrder(1L, 2L);
+                .containsExactlyInAnyOrder(1L, 5L);
     }
 
     /** Imita la base: el UPDATE solo pasa si el responsable sigue siendo el anterior. */
