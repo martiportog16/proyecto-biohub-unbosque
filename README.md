@@ -46,6 +46,12 @@ Luego abrir:
 | Estado del grupo científico | http://localhost:8080/api/cientifico/estado |
 | Documentación de la API (Swagger) | http://localhost:8080/swagger-ui.html |
 
+Para la sustentación, con datos que tienen historia (hallazgos de meses pasados, uno reclasificado dos veces, equipos que cambiaron de manos):
+
+```bash
+./scripts/sembrar-demo.sh
+```
+
 `docker compose up` espera a que cada parte esté **sana** antes de arrancar la siguiente (T-11): primero la base y Redis, luego el grupo científico (que corre las migraciones), luego el público y el batch, y al final Nginx. Para ver la salud de todo:
 
 ```bash
