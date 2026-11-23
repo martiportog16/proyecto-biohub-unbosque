@@ -1,13 +1,9 @@
 package co.edu.unbosque.biohub.dominio.integracion;
 
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
-import co.edu.unbosque.biohub.dominio.fichas.DefinicionAtributo;
+import co.edu.unbosque.biohub.dominio.fichas.DatosDeUbicacion;
 import co.edu.unbosque.biohub.dominio.fichas.FichaTaxonomica;
-import co.edu.unbosque.biohub.dominio.fichas.TipoDato;
 
 /**
  * Qué valores de un hallazgo puede recibir una universidad u ONG (P-30).
@@ -23,20 +19,11 @@ import co.edu.unbosque.biohub.dominio.fichas.TipoDato;
  */
 public final class AtributosPublicos {
 
-    public static final Set<TipoDato> TIPOS_PUBLICOS =
-            EnumSet.of(TipoDato.TEXTO, TipoDato.NUMERO, TipoDato.FECHA, TipoDato.LISTA);
-
     private AtributosPublicos() {
     }
 
+    /** Lo mismo que ve el personal científico sin autorización: los datos que no son de ubicación. */
     public static Map<String, Object> filtrar(FichaTaxonomica ficha, Map<String, Object> valores) {
-        Map<String, Object> publicos = new LinkedHashMap<>();
-        for (DefinicionAtributo definicion : ficha.atributos()) {
-            Object valor = valores.get(definicion.nombre());
-            if (valor != null && TIPOS_PUBLICOS.contains(definicion.tipo())) {
-                publicos.put(definicion.nombre(), valor);
-            }
-        }
-        return publicos;
+        return DatosDeUbicacion.separar(ficha, valores).visibles();
     }
 }
