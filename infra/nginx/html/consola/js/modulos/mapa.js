@@ -1,8 +1,11 @@
 /*
  * Mapa con las coordenadas exactas de una especie (HU-08, RF-10, RF-11, RNF-06).
  *
- * Quién ve qué lo decide SOLO la autorización del backend (un único componente, RF-11):
- *  - especie fuera de peligro: todo el personal científico;
+ * En el menú solo aparece para el personal de alto rango: es el actor de CU-08.
+ * Si otra persona del personal científico llega por un enlace (por ejemplo, uno que le
+ * compartieron), la consola NO decide: le pregunta a la autorización del backend, que
+ * es la única que decide (un único componente, RF-11):
+ *  - especie fuera de peligro: el personal científico puede verla (decisión P-24);
  *  - especie en peligro: solo el personal de alto rango.
  * Cada consulta, permitida o negada, queda en el registro de accesos. Por eso el mapa
  * no se carga solo al escoger la especie: se pide con un botón, a propósito.
@@ -34,14 +37,15 @@
     id: 'mapa',
     titulo: 'Mapa de coordenadas',
     grupo: 'Coordenadas protegidas',
-    roles: CIENTIFICOS,
-    resumen: 'Dónde se vio cada hallazgo, con la ubicación exacta. Las especies en peligro, solo para alto rango.',
+    menu: ['ALTO_RANGO'],    // CU-08: consultar coordenadas exactas
+    roles: CIENTIFICOS,      // por un enlace puede llegar cualquiera del personal científico; decide el backend
+    resumen: 'Dónde se vio cada hallazgo, con la ubicación exacta, incluidas las especies en peligro.',
     mostrar
   });
 
-  // En el detalle de cada hallazgo: pedir su ubicación exacta (también queda registrado)
+  // En el detalle de cada hallazgo: el alto rango puede pedir su ubicación exacta (también queda registrado)
   if (BioHub.hallazgos) {
-    BioHub.hallazgos.agregarAccion((hallazgo) => sesion.tiene(...CIENTIFICOS) ? ubicacionDeHallazgo(hallazgo) : null);
+    BioHub.hallazgos.agregarAccion((hallazgo) => sesion.tiene('ALTO_RANGO') ? ubicacionDeHallazgo(hallazgo) : null);
   }
 
   /* ---------- Pantalla del mapa ---------- */
@@ -49,7 +53,7 @@
   async function mostrar(contenedor, [especieInicial]) {
     ui.titulo(contenedor, 'Mapa de coordenadas',
       sesion.tiene('ALTO_RANGO') ? 'Usted puede ver las coordenadas de todas las especies, incluidas las que están en peligro.'
-        : 'Puede ver las coordenadas de las especies fuera de peligro. Las de especies en peligro solo las ve el personal de alto rango.');
+        : 'Esta pantalla es del personal de alto rango. Usted llegó por un enlace: la autorización decide si su rol puede ver la especie, y registra la consulta.');
     const especies = await catalogo.especies();
     const select = h('select', { id: 'especie-mapa' }, h('option', { value: '' }, 'Escoja la especie…'),
       especies.map((e) => h('option', { value: e.id }, e.nombreCientifico + (e.enPeligro ? ' · en peligro' : ''))));

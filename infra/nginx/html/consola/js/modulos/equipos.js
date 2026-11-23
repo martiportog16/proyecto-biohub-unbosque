@@ -8,15 +8,15 @@
   const { api, h, vaciar, ui, sesion, formularios } = window.BioHub;
   const { error, limpiarErrores, marcarErrores } = formularios;
 
-  const CIENTIFICOS = ['INVESTIGADOR', 'ADMINISTRADOR_CIENTIFICO', 'DIRECTOR_CIENTIFICO', 'AUDITOR_CIENTIFICO', 'ALTO_RANGO'];
-  const puedeAsignar = () => sesion.tiene('INVESTIGADOR', 'ADMINISTRADOR_CIENTIFICO', 'DIRECTOR_CIENTIFICO');
+  // CU-03 (asociar un equipo a su responsable) y CU-04 (consultar quién lo tiene): el investigador
+  const puedeAsignar = () => sesion.tiene('INVESTIGADOR');
   const TIPOS = { DRON: 'Dron', CAMARA_TRAMPA: 'Cámara trampa', SENSOR: 'Sensor', GPS: 'GPS', GRABADORA_ACUSTICA: 'Grabadora acústica', OTRO: 'Otro' };
 
   BioHub.registrar({
     id: 'equipos',
     titulo: 'Equipos de campo',
     grupo: 'Equipos de campo',
-    roles: CIENTIFICOS,
+    roles: ['INVESTIGADOR'],
     resumen: 'Drones, cámaras y sensores: quién tiene cada uno y su historial.',
     mostrar(contenedor, [id]) {
       if (id === 'nuevo') return nuevo(contenedor);

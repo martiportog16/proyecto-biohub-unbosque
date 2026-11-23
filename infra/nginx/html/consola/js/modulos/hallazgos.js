@@ -5,9 +5,12 @@
  */
 (function () {
   'use strict';
-  const { api, h, vaciar, ui, catalogo, formularios } = window.BioHub;
+  const { api, h, vaciar, ui, catalogo, formularios, sesion } = window.BioHub;
 
-  const CIENTIFICOS = ['INVESTIGADOR', 'ADMINISTRADOR_CIENTIFICO', 'DIRECTOR_CIENTIFICO', 'AUDITOR_CIENTIFICO', 'ALTO_RANGO'];
+  // Quienes necesitan encontrar un hallazgo para su caso de uso: el investigador (CU-01), el director
+  // (CU-06, reclasificar), el auditor (CU-07, historial) y el alto rango (CU-08, ubicación exacta).
+  // El administrador científico no: su caso de uso (CU-02) son las fichas, no los hallazgos.
+  const CON_HALLAZGOS = ['INVESTIGADOR', 'DIRECTOR_CIENTIFICO', 'AUDITOR_CIENTIFICO', 'ALTO_RANGO'];
   const POR_PAGINA = 50;
 
   /** Otras pantallas (por ejemplo reclasificar, paquete 19) agregan acciones al detalle. */
@@ -18,7 +21,7 @@
     id: 'hallazgos',
     titulo: 'Hallazgos',
     grupo: 'Registro científico',
-    roles: CIENTIFICOS,
+    roles: CON_HALLAZGOS,
     resumen: 'Lo registrado en campo, con filtros por especie y departamento.',
     mostrar(contenedor, [id]) {
       return id ? detalle(contenedor, id) : lista(contenedor);
@@ -103,7 +106,7 @@
       h('section', { class: 'tarjeta' },
         h('h2', null, 'Datos'),
         h('table', null, h('tbody', null,
-          fila('Especie', h('a', { href: '#/especies/' + hallazgo.especieId }, nombre)),
+          fila('Especie', sesion.tiene('ADMINISTRADOR_CIENTIFICO') ? h('a', { href: '#/especies/' + hallazgo.especieId }, nombre) : nombre),
           fila('Fecha de observación', ui.fecha(hallazgo.fechaObservacion)),
           fila('Departamento', hallazgo.departamento),
           fila('Versión de la ficha', 'v' + hallazgo.versionFicha + ' (la vigente cuando se registró)'),
@@ -116,11 +119,13 @@
         // La ruta GPS y los archivos revelan la ubicación: el backend no los manda aquí (RNF-06)
         (hallazgo.valoresProtegidos || []).length ? h('p', { class: 'suave pequeno' },
           'Datos de ubicación protegidos: ', hallazgo.valoresProtegidos.map(formularios.nombreBonito).join(', '),
-          '. Se ven con "Ver la ubicación exacta", si su rol lo permite.') : null),
+          sesion.tiene('ALTO_RANGO') ? '. Se ven con "Ver la ubicación exacta".' : '. Solo los consulta el personal de alto rango.') : null),
       h('section', { class: 'tarjeta' },
         h('h2', null, 'Ubicación'),
         h('p', null, 'Departamento: ', h('strong', null, hallazgo.departamento), '.'),
-        h('p', { class: 'suave pequeno' }, 'La coordenada exacta está en una zona protegida. Para verla hay que pedirla a la autorización, que revisa su rol y deja registro de la consulta.')));
+        h('p', { class: 'suave pequeno' }, sesion.tiene('ALTO_RANGO')
+          ? 'La coordenada exacta está en una zona protegida. Al pedirla, la autorización revisa su rol y deja registro de la consulta.'
+          : 'La coordenada exacta está protegida: solo la consulta el personal científico de alto rango (RF-10).')));
 
     for (const accion of accionesDelDetalle) {
       const pieza = await accion(hallazgo);
