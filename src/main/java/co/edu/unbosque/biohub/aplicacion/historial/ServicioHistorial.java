@@ -60,8 +60,10 @@ public class ServicioHistorial {
         HistorialHallazgo h = cargar(hallazgoId);
         Instant finDelDia = fecha.plusDays(1).atStartOfDay(reloj.getZone()).toInstant().minusNanos(1);
         Optional<Long> entonces = h.especieEn(finDelDia);
-        List<VistaReclasificacion> desdeEntonces = h.cambiosDespuesDe(finDelDia).stream()
-                .map(nombres.traductor()::vista).toList();
+        // Si en esa fecha el hallazgo no existía, no hay "cambios desde entonces" que comparar:
+        // la lista va vacía (antes traía todos los cambios con la bandera en false; lo notó la auditoría)
+        List<VistaReclasificacion> desdeEntonces = entonces.isEmpty() ? List.of()
+                : h.cambiosDespuesDe(finDelDia).stream().map(nombres.traductor()::vista).toList();
         Traductor t = nombres.traductor();
 
         return new VistaComparacion(hallazgoId, fecha, entonces.isPresent(),

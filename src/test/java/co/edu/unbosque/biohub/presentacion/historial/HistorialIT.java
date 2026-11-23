@@ -136,7 +136,9 @@ class HistorialIT extends BaseIT {
             .statusCode(200)
             .body("existiaEnEsaFecha", equalTo(false))
             .body("especieEnEsaFecha", nullValue())
-            .body("cambiosDesdeEntonces", hasSize(2));
+            // Sin estado en esa fecha no hay "cambios desde entonces" (antes venían los 2 con la bandera en false)
+            .body("cambioDesdeEntonces", equalTo(false))
+            .body("cambiosDesdeEntonces", hasSize(0));
     }
 
     @Test
