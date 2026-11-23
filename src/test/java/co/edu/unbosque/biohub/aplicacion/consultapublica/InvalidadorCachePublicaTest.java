@@ -74,7 +74,7 @@ class InvalidadorCachePublicaTest {
 
         assertThat(cache.contiene(LectorPublico.claveFicha(7L))).isFalse();
         assertThat(cache.contiene(LectorPublico.claveFicha(8L))).isFalse();
-        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado no tiene conteos").isTrue();
+        assertThat(cache.contiene(LectorPublico.CLAVE_LISTADO)).as("el listado vence solo en 3 s: no se recalcula en cada registro").isTrue();
     }
 
     @Test

@@ -230,7 +230,7 @@
         boton.textContent = original;
       }
     },
-    /** Hoy en Colombia, como "AAAA-MM-DD" (no en UTC: después de las 7 p. m. UTC ya es mañana). */
+    /** Hoy en Colombia, como "AAAA-MM-DD" (no en UTC: desde las 7 p. m. de Colombia, en UTC ya es mañana). */
     hoy() {
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
     },

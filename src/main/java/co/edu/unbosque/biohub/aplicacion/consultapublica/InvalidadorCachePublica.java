@@ -63,7 +63,12 @@ public class InvalidadorCachePublica {
     /**
      * Cambiaron los hallazgos de estas especies (uno nuevo, o uno que pasó de una a otra).
      * La ficha pública muestra en qué departamentos hay hallazgos y cuántos, así que se
-     * borra la ficha de cada una. El listado no cambia: no muestra conteos.
+     * borra la ficha de cada una.
+     *
+     * El listado también muestra el total de hallazgos por especie, pero a propósito NO se
+     * borra aquí: en el pico se registran varios hallazgos por segundo, y recalcular el
+     * listado completo cada vez le quitaría el sentido a la caché. Su copia vence sola en
+     * 3 s, así que el total se actualiza en ese tiempo, dentro de PR-16 (≤ 5 s).
      */
     public void hallazgosCambiaron(long... especies) {
         borrarDespuesDelCommit(Arrays.stream(especies).distinct()

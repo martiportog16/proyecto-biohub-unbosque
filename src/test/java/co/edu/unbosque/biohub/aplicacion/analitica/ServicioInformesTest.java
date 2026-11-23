@@ -39,6 +39,14 @@ class ServicioInformesTest {
     }
 
     @Test
+    void unMesAnteriorA1900SeRechazaPorqueNoPuedeHaberHallazgos() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> servicio.solicitar(java.time.YearMonth.of(1899, 12), ANALISTA))
+                .isInstanceOf(co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException.class)
+                .hasFieldOrPropertyWithValue("detalles", java.util.List.of("periodo: no puede ser anterior a 1900-01"));
+        assertThat(servicio.solicitar(java.time.YearMonth.of(1900, 1), ANALISTA).estado()).isEqualTo(EstadoSolicitud.PENDIENTE);
+    }
+
+    @Test
     void pedirDosVecesElMismoMesNoDuplicaLaSolicitud() {
         VistaSolicitud primera = servicio.solicitar(OCTUBRE, ANALISTA);
         VistaSolicitud segunda = servicio.solicitar(OCTUBRE, ANALISTA);

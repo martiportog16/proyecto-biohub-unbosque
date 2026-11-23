@@ -17,6 +17,7 @@ import co.edu.unbosque.biohub.aplicacion.analitica.VistasInformes.VistaSolicitud
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
 import co.edu.unbosque.biohub.dominio.analitica.CalculadoraIndicePresion;
+import co.edu.unbosque.biohub.dominio.hallazgos.Hallazgo;
 import co.edu.unbosque.biohub.dominio.analitica.SolicitudInforme;
 import co.edu.unbosque.biohub.persistencia.analitica.RepositorioInformes;
 
@@ -60,10 +61,17 @@ public class ServicioInformes {
      *  - si el informe ya existe, lo dice y no crea nada;
      *  - si ya hay una solicitud pendiente de ese mes, devuelve esa misma.
      */
+    static final YearMonth PERIODO_MINIMO = YearMonth.from(Hallazgo.FECHA_MINIMA);
+
     public VistaSolicitud solicitar(YearMonth periodo, long usuarioId) {
         if (periodo == null) {
             throw new ReglaDeNegocioException("La solicitud no es válida",
                     List.of("periodo: es obligatorio, en formato AAAA-MM"));
+        }
+        if (periodo.isBefore(PERIODO_MINIMO)) {
+            // Ningún hallazgo puede ser anterior a 1900 (Hallazgo.FECHA_MINIMA): el informe saldría vacío
+            throw new ReglaDeNegocioException("La solicitud no es válida",
+                    List.of("periodo: no puede ser anterior a " + PERIODO_MINIMO));
         }
         if (!CalculadoraIndicePresion.sePuedeGenerar(periodo, LocalDate.now(reloj))) {
             throw new ReglaDeNegocioException("La solicitud no es válida",
