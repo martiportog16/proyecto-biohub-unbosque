@@ -68,16 +68,20 @@ Máquina de **2 núcleos y 7 GB de RAM**, con BioHub (10 contenedores) y k6 en l
 - Los registros fallaban después de las 7 p. m., porque k6 mandaba la fecha de "hoy" en hora UTC, que en Colombia ya es mañana, y la API rechaza fechas futuras.
 - Los scripts ahora usan la fecha de ayer.
 
-### En un computador del equipo (llenar)
+### En un computador del equipo
 
 | Dato | Valor |
 | --- | --- |
-| Quién y cuándo | |
-| Procesador, núcleos y RAM | |
-| PR-02: peticiones, p95, máximo, % de caídas por minuto | |
-| PR-03: registros, p95, errores | |
-| CPU máxima de la primaria | |
-| PR-13: p95 sin batch / con batch / diferencia | |
+| Quién y cuándo | Martin, noviembre de 2026, Windows con Docker Desktop y otros programas abiertos |
+| Procesador, núcleos y RAM | AMD Ryzen 5 5600X (6 núcleos, 12 hilos), 16 GB a 3200 MHz |
+| PR-02: peticiones, p95, % de caídas por minuto | 90 001 peticiones, **p95 = 1,16 ms**, **0 % de caídas en cada minuto** |
+| PR-03: registros, p95, errores | 1 501 registros, **p95 = 7,5 ms**, **0 errores** |
+| CPU máxima de la primaria | **5,81 %** |
+| PR-13: p95 sin batch / con batch / diferencia | 10,3 ms / 5,4 ms / **−4,9 ms** (dentro del ruido; el límite es +1 000 ms), 315 consultas pesadas y 23 informes durante la medición |
+| Siembra de 1 millón de hallazgos | 1 002 265 hallazgos en unos 22 s |
+| PR-04 (repetida en este equipo) | 763 registros, **0 errores**, la base tiene exactamente 763 |
+
+**Cómo leer la diferencia negativa de PR-13:** con el batch, el registro salió un poco **más rápido**. No es que el batch ayude: la primera fase ("sin batch") incluye el calentamiento de la JVM y de las conexiones. Lo que importa es que la diferencia está muy lejos del +1 000 ms permitido.
 
 ## Límites de estas pruebas (decirlo en la sustentación)
 
