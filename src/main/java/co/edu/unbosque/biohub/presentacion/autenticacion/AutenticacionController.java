@@ -27,7 +27,8 @@ public class AutenticacionController {
         this.servicio = servicio;
     }
 
-    public record SolicitudLogin(@NotBlank @Email String correo, @NotBlank String clave) {
+    public record SolicitudLogin(@NotBlank(message = "es obligatorio") @Email(message = "no es un correo válido") String correo,
+                                 @NotBlank(message = "es obligatoria") String clave) {
     }
 
     @PostMapping("/auth/login")
