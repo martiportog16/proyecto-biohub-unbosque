@@ -12,7 +12,7 @@ Todas las rutas de Java son relativas a `src/main/java/co/edu/unbosque/biohub/`.
 | Capas cerradas: presentación → aplicación → dominio, y persistencia (ADR-02) | Paquetes `presentacion`, `aplicacion`, `dominio`, `persistencia` y `configuracion` | `CapasTest` (ArchUnit) en cada `mvnw verify` |
 | Zona expuesta y zona interna (RNF-07) | Solo Nginx publica un puerto (`docker-compose.yml`) | `scripts/verificar-red.sh` (PR-10) |
 | Credenciales distintas por rol (T-14) | `app_cientifico`, `app_publico` y `app_batch` (`V1`) | `PermisosBaseDeDatosIT` (PR-09) |
-| Interfaz científica, portal público y API externa | `infra/nginx/html/consola/`, `infra/nginx/html/index.html` y `/api/v1` | 44 pruebas en navegador (`scripts/pruebas-ui.sh`) y `scripts/suite-externa.sh` |
+| Interfaz científica, portal público y API externa | `infra/nginx/html/consola/`, `infra/nginx/html/index.html` y `/api/v1` | 49 pruebas en navegador (`scripts/pruebas-ui.sh`) y `scripts/suite-externa.sh` |
 
 ## 2. Los 7 módulos
 
@@ -93,6 +93,10 @@ Todas las rutas de Java son relativas a `src/main/java/co/edu/unbosque/biohub/`.
 | PR-17 | RNF-03 | `LectorPublicoTest` con `AlmacenCacheEnMemoria` | El lector funciona sin Redis |
 | — | RNF-10 | `docs/prueba-usabilidad.md` | **La hace el equipo con 10 personas** |
 
+**Cobertura (S21).** JaCoCo mide las pruebas unitarias y de integración juntas en cada `mvnw verify` y en el CI: **95,6 % de las líneas y 85,1 % de las ramas** (reporte en `target/site/jacoco/index.html`). La cobertura dice qué código se ejecutó, no que esté bien probado: por eso cada prueba revisa un resultado esperado.
+
+**Dobles de prueba (S20 y S21).** *Stub*: reloj fijo (`ServicioRegistroHallazgosTest`, `ServicioReclasificacionTest`) y emisor de tokens (`ServicioAutenticacionTest`). *Spy*: la escritura de coordenadas que anota lo que recibe (`ServicioRegistroHallazgosTest`) y la ficha que cuenta cuántas veces se le pide (`ServicioInventarioTest`). *Fake*: repositorios en memoria (`EquiposEnMemoria`) y `AlmacenCacheEnMemoria` (PR-17). No se usaron *mocks* con Mockito: en ningún caso la interacción misma era el comportamiento que había que probar (S21).
+
 ## 6. Patrones
 
 En total se usan **dos patrones de diseño**: Strategy y Adapter (caché). Lo demás de la tabla son decisiones de diseño que conviene no presentar como patrones.
@@ -107,6 +111,18 @@ En total se usan **dos patrones de diseño**: Strategy y Adapter (caché). Lo de
 | Factory Method | No se usa | `EquipoCampo.crear` y `FichaTaxonomica.inicial` son métodos de creación con validación, no el patrón |
 | Segregación de interfaces (SOLID) | Aplicado | `RepositorioConsumidores` / `AdministracionConsumidores`; `RepositorioUsuarios` / `DirectorioPersonal` |
 
+**Qué principio SOLID aplica cada patrón (S18 y S20):** Strategy aplica **OCP**: un tipo de dato nuevo es una clase nueva y `FichaTaxonomica` no se toca. Adapter aplica **DIP**: la aplicación depende de `AlmacenCache`, una interfaz suya, y no de Redis.
+
+**SOLID en el código (S18):**
+
+| Principio | Dónde se ve |
+| --- | --- |
+| S · Responsabilidad única | Un servicio por caso de uso (`ServicioRegistroHallazgos`, `ServicioReclasificacion`, `ServicioHistorial`…). La regla de coordenadas (`ReglaAccesoCoordenadas`, lógica pura) está separada del componente que lee y registra (`AutorizacionCoordenadas`) |
+| O · Abierto/cerrado | `ValidadorDeTipo` (Strategy): agregar un tipo de dato no cambia la validación de la ficha |
+| L · Sustitución de Liskov | Cualquier implementación de `AlmacenCache` sirve igual: con `AdaptadorRedis` en producción y con `AlmacenCacheEnMemoria` en las pruebas, `LectorPublico` se comporta igual (PR-17) |
+| I · Segregación de interfaces | `LecturaCoordenadas` / `EscrituraCoordenadas` (C-3): el registro solo puede escribir, la autorización solo puede leer. También `RepositorioUsuarios` / `DirectorioPersonal` y `RepositorioConsumidores` / `AdministracionConsumidores` |
+| D · Inversión de dependencias | La aplicación depende de interfaces de persistencia (`RepositorioHallazgos`, `RepositorioHistorial`…); las clases `Jdbc` las implementan. Por eso los servicios se prueban con dobles, sin base de datos |
+
 ## 7. Lo que cambió respecto al Entregable 2
 
 | Qué | Entregable 2 | Implementado | Motivo |
@@ -116,6 +132,9 @@ En total se usan **dos patrones de diseño**: Strategy y Adapter (caché). Lo de
 | Fichas por grupo | Herencia en el diagrama de clases | Copia como versión nueva a cada especie que hereda | Mantiene la garantía de PR-01 sin tocar el registro |
 | Mapa (RF-10) | Sin especificar | Leaflet con los límites de los departamentos guardados en el servidor, sin mapas de terceros | Pedir imágenes a terceros revelaría qué zona mira el alto rango |
 | Precarga de caché (T-07) | Pendiente | No se hizo | Con caché de 3 s y doble borrado, la ficha se ve en milisegundos; precargar no mejoraba nada medible |
+| Pantallas por rol | Cada actor con sus casos de uso (diagrama de casos de uso) | Igual, desde el paquete 26 (ver sección 10) | La primera versión de la consola mostraba las pantallas científicas a los 5 roles científicos; la auditoría de alineación lo detectó |
+| Responsable de un equipo | "Investigador responsable" (HU-03, criterio 1) | Solo un investigador activo, desde el paquete 26 | Antes se aceptaba cualquier rol científico |
+| Migración de datos (WBS 1.4.10) | Fuera de la entrega (P-22) | No se construyó | Ningún RF ni HU la pide y el Enunciado dice "no inventen alcance". La API de registro ya valida cada hallazgo: una migración futura solo tendría que llamarla |
 
 ## 8. Nombres que cambiaron entre los diagramas y el código
 
@@ -124,6 +143,19 @@ En total se usan **dos patrones de diseño**: Strategy y Adapter (caché). Lo de
 | `ILecturaCoordenadas`, `IEscrituraCoordenadas` | `LecturaCoordenadas`, `EscrituraCoordenadas` | En Java no se usa el prefijo `I` para las interfaces; la implementación lleva el sufijo `Jdbc` |
 | `ConsumidorExterno.configurarLimite` | `Consumidor.con(...)` + `ServicioConsumidores.cambiar` | El dominio no guarda; el servicio valida y la persistencia guarda (capas cerradas) |
 | Repositorio de informes (C-1), de usuarios (C-2) | `RepositorioInformes`, `RepositorioUsuarios` | Iguales |
+| `PoliticaAccesoCoordenadas.puedeVerCoordenadas` | `ReglaAccesoCoordenadas` (la regla) + `AutorizacionCoordenadas` (el único componente que decide, lee y registra) | La regla es lógica pura y se prueba sola (PR-14) |
+| `HistorialReclasificacion` (agregar, entradas, estadoEn) | `HistorialHallazgo` (agregar, entradas, especieEn) | Mismo papel; el "estado" es la especie (P-29) |
+| `Hallazgo.reclasificar`, `Hallazgo.estadoEn` | `HistorialHallazgo.agregar`, `HistorialHallazgo.especieEn` | El historial es el dueño de los cambios; el hallazgo guardado no se modifica |
+| `Hallazgo.crear(...)` | `Hallazgo.erroresDeDatos` + `FichaTaxonomica.validar` | Se reúnen todos los errores antes de guardar (HU-01, criterio 2) |
+| `CoordenadaProtegida` | `UbicacionExacta` y `Coordenada` (esquema `protegido`) | — |
+| `ProyeccionPublica`, `FichaPublica` | `LectorPublico`, `VistasConsultaPublica`, `AtributosPublicos` | — |
+| `ConsumidorExterno` | `Consumidor` | — |
+| `Rol.PERSONAL_ALTO_RANGO`, `Usuario.roles[1..*]` | `Rol.ALTO_RANGO`, un rol por usuario | P-25 |
+| `EquipoCampo.asignarResponsable` | `EquipoCampo.reasignarA` + `AsignacionEquipo` (solo inserción) | Queda el historial de responsables |
+| `InformeMensual.agregarIndice` | `InformeMensual` es un `record` inmutable | Builder descartado |
+| Región **y** departamento en `Hallazgo` | Solo departamento | Ver sección 7 |
+
+Clases que no estaban en el diagrama: `MembresiaGrupo` (fichas por grupo), `AccesoCoordenadas` (registro de accesos, P-18), `AsignacionEquipo`, `SolicitudInforme` (el analista pide un mes, P-11) y `DatosDeUbicacion` (sección 9).
 
 ## 9. Lo que encontró la auditoría independiente y cómo se resolvió
 
@@ -148,3 +180,55 @@ Antes de la entrega, un revisor que no participó en la construcción revisó el
 - **Swagger es público.** Solo documenta la API: todas las operaciones científicas siguen pidiendo token.
 - **El portal público no tiene CSP**, porque usa estilos y código dentro de la página. Escapa todo el texto que muestra y no tiene datos sensibles.
 - **El departamento declarado no se cruza con la coordenada.** Se valida que el punto esté en Colombia, no en qué departamento cae exactamente.
+
+## 10. Pantallas por rol: cada actor con sus casos de uso
+
+El diagrama de casos de uso del Entregable 2 une a cada actor solo con sus casos. La consola hace lo mismo: el menú de cada rol muestra solo las pantallas de sus casos de uso, más la lista de hallazgos para quien necesita encontrar uno. **El permiso real lo decide el backend** (403), así que ocultar una pantalla es comodidad, no seguridad. La prueba `consola-base.spec.js` revisa el menú exacto de los 7 roles.
+
+| Rol | Pantallas | Casos de uso |
+| --- | --- | --- |
+| Investigador | Registrar hallazgo, Hallazgos, Equipos de campo | CU-01, CU-03, CU-04 |
+| Administrador científico | Especies y fichas, Grupos taxonómicos | CU-02 |
+| Director científico | Hallazgos, Historial y reclasificación | CU-06 (y reconstruir la historia, Acta) |
+| Auditor científico | Hallazgos, Historial y reclasificación (solo lectura), Accesos a coordenadas | CU-07, P-18 |
+| Personal de alto rango | Hallazgos, Mapa de coordenadas (y "Ver la ubicación exacta" en cada hallazgo) | CU-08 |
+| Analista | Índices de presión | CU-13, CU-14 |
+| Administrador de la plataforma | Consumidores externos | CU-12 |
+
+**El mapa y los enlaces.** Si una persona del personal científico abre un enlace al mapa (por ejemplo, uno que le compartieron), la consola no decide: le pregunta a `AutorizacionCoordenadas`. Para una especie en peligro responde 403 con el motivo, y el intento queda en el registro del auditor. Para una especie fuera de peligro lo permite (P-24). Así se ve en la demostración cómo actúa la autorización centralizada (RNF-06) sin herramientas técnicas.
+
+## 11. Las decisiones pendientes del Entregable 2 y cómo se resolvieron
+
+| P | Decisión pendiente | Cómo quedó |
+| --- | --- | --- |
+| P-01 | Fecha de la entrega | Martes 24 de noviembre (Sesión 26); el 25 es para los grupos que no alcancen a pasar |
+| P-02 | Uno o dos grupos de instancias | Dos grupos (público y científico) y un proceso batch, con el mismo artefacto |
+| P-03 | Fuente de la analítica y destino de los informes | Réplica dedicada para la analítica (`postgres-replica-analitica`); el informe se guarda en la primaria por una conexión aparte |
+| P-04 | Registro de servicios estático o dinámico | Estático: nombres de servicio en `nginx.conf`, resueltos por el DNS de Docker (PR-12) |
+| P-05 | Organismos internacionales como actores | No son un actor propio: consumen los datos por la API `/v1`, como las universidades y ONG |
+| P-06 | Historias comprometidas | Las 8 comprometidas y además HU-01, HU-03 y HU-10: 11 de 11 |
+| P-07 | Tecnologías | Java 21 y Spring Boot 3.3, PostgreSQL 16, Redis 7, Nginx 1.27, Docker Compose; pruebas con JUnit 5, Testcontainers, REST Assured, ArchUnit, Playwright y k6 (ver `docs/arquitectura-c4.md`) |
+| P-08 | Corregir el SRS (v3.1) | No se publicó una v3.1. Las dos diferencias conocidas (columna del backlog de HU-06 a HU-08) están explicadas en el Entregable 2 |
+| P-09 | Formato de las fichas | JSONB versionado en `definicion_ficha`; retirar un atributo lo marca inactivo |
+| P-10 | Dónde se aplica el límite por consumidor | En la aplicación (`FiltroApiKey` + Redis); Nginx solo pone un límite global al portal |
+| P-11 | Forma de ejecución del reporte | Programado el día 1 de cada mes a las 2:00 a. m., y el analista también puede pedir un mes (202 y el batch lo atiende) |
+| P-12 | Tráfico habitual | Supuesto de 5 peticiones/s, así que el pico es de 300 peticiones/s |
+| P-13 | Estadístico de RNF-03 y RNF-09 | p95 |
+| P-14 | Desfase de fichas recién anunciadas | 5 s como máximo; medido en unos 35 ms (PR-16) |
+| P-15 | Nombres de las capas | `presentacion`, `aplicacion`, `dominio`, `persistencia` |
+| P-16 | Qué es una "caída" | Una respuesta 5xx o más lenta que 5 s; ningún minuto puede pasar del 1 % |
+| P-17 | Proteger el historial del administrador de la base | Triggers que impiden UPDATE y DELETE, y `REVOKE` a los usuarios de la aplicación (V4, PR-06) |
+| P-18 | Registrar los accesos a coordenadas | Sí: cada consulta, permitida o negada, con su motivo (`AccesoCoordenadas`) |
+| P-19 | Punto de entrada compartido | Un solo Nginx, con límite global para las rutas públicas (400 peticiones/s) y su propio grupo de instancias para la ruta científica |
+| P-20 | Umbrales de suficiencia del monolito | CPU de la primaria por debajo del 80 % durante el pico; medido: 7,4 % de un núcleo |
+| P-21 | Conmutación de la primaria | Manual, con `scripts/promover-replica.sh` (30 s, 0 hallazgos perdidos) |
+| P-22 | Migración de datos (WBS 1.4.10) | Fuera de la entrega: ningún RF ni HU la pide (ver sección 7) |
+| P-24 | Coordenadas de especies fuera de peligro | Las ve el personal científico; las de especies en peligro, solo el alto rango |
+| P-25 | Varios roles por usuario | Uno solo |
+| P-26 | Fórmula del índice y "zona" | Zona = departamento. Índice = max(0, (B − E) / B), donde E es el número de especies vistas en el mes y B el promedio de los hasta 3 meses anteriores |
+| P-27 | Permisos fuera de las coordenadas | Con `@PreAuthorize` en cada endpoint; el componente central queda solo para las coordenadas (RF-11) |
+| P-28 | Autenticación | JWT HS256 de 60 minutos y claves con BCrypt; bloqueo tras 10 intentos fallidos |
+| P-29 | El "estado" de un hallazgo | La especie que tenía asignada en ese momento |
+| P-30 | Datos para consumidores externos | Solo atributos de texto, número, fecha y lista; nunca rutas GPS, archivos ni coordenadas |
+| P-31 | Dónde se guardan los consumidores | En la base (tabla `consumidor`), con la huella SHA-256 de la API key |
+| P-32 | Tipos de dato iniciales | Seis: texto, número, fecha, lista, ruta GPS y archivo |
