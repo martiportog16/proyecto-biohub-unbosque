@@ -59,7 +59,7 @@ class HistorialIT extends BaseIT {
         String director = tokenDe("director@biohub.co");
 
         hallazgo = given().auth().oauth2(tokenDe("investigador@biohub.co")).contentType("application/json")
-                .body(Map.of("especieId", 3, "fechaObservacion", LocalDate.now().toString(),
+                .body(Map.of("especieId", 3, "fechaObservacion", LocalDate.now(reloj).toString(),
                         "departamento", "Antioquia", "valores", Map.of("numero_individuos", 2),
                         "coordenada", Map.of("latitud", 6.25, "longitud", -75.56)))
                 .post("/api/cientifico/hallazgos")
