@@ -32,12 +32,17 @@ public record Hallazgo(
      * "hoy" llega desde afuera (un reloj inyectado) para que la regla se pueda probar
      * con cualquier fecha (S21: stub del reloj).
      */
+    public static final LocalDate FECHA_MINIMA = LocalDate.of(1900, 1, 1);
+
     public static List<String> erroresDeDatos(LocalDate fechaObservacion, String departamento, LocalDate hoy) {
         List<String> errores = new ArrayList<>();
         if (fechaObservacion == null) {
             errores.add("fechaObservacion: es obligatoria");
         } else if (fechaObservacion.isAfter(hoy)) {
             errores.add("fechaObservacion: no puede ser una fecha futura");
+        } else if (fechaObservacion.isBefore(FECHA_MINIMA)) {
+            // Un año como 1500 es un error de digitación, no un registro histórico
+            errores.add("fechaObservacion: no puede ser anterior a " + FECHA_MINIMA);
         }
         if (!Departamentos.esValido(departamento)) {
             errores.add("departamento: debe ser un departamento de Colombia (ej. Cundinamarca, Bogotá D.C.)");
