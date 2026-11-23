@@ -62,16 +62,23 @@ test.describe('Inicio de sesión', () => {
 });
 
 test.describe('Menú según el rol', () => {
+  // Cada actor ve las pantallas de SUS casos de uso (diagrama de casos de uso del Entregable 2),
+  // más la lista de hallazgos para quien necesita encontrar uno (CU-01, CU-06, CU-07 y CU-08).
   const ESPERADO = {
-    analista: ['Inicio', 'Índices de presión'],
-    investigador: ['Inicio']
+    investigador: ['Registrar hallazgo', 'Hallazgos', 'Equipos de campo'],
+    adminCientifico: ['Especies y fichas', 'Grupos taxonómicos'],
+    director: ['Hallazgos', 'Historial y reclasificación', 'Usuarios y roles'],
+    auditor: ['Hallazgos', 'Historial y reclasificación', 'Accesos a coordenadas'],
+    altoRango: ['Hallazgos', 'Mapa de coordenadas'],
+    analista: ['Índices de presión'],
+    adminPlataforma: ['Consumidores externos', 'Usuarios y roles']
   };
 
   for (const [quien, opciones] of Object.entries(ESPERADO)) {
-    test(`el menú de ${quien} contiene sus opciones`, async ({ page }) => {
+    test(`el menú de ${quien} tiene exactamente sus pantallas`, async ({ page }) => {
       await entrarComo(page, USUARIOS[quien]);
       const menu = page.getByRole('navigation', { name: 'Opciones de su rol' });
-      for (const opcion of opciones) await expect(menu.getByRole('link', { name: opcion })).toBeVisible();
+      await expect(menu.getByRole('link')).toHaveText(['Inicio', ...opciones]);
     });
   }
 
