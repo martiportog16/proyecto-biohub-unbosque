@@ -33,13 +33,13 @@ revisar() {
   echo "=== BioHub · estado de salud · $(date '+%Y-%m-%d %H:%M:%S') ==="
   echo
   echo "1. Contenedores"
-  printf '   %-36s %-10s %s\n' "CONTENEDOR" "ESTADO" "SALUD"
+  printf '   %-46s %-10s %s\n' "CONTENEDOR" "ESTADO" "SALUD"
   while IFS='|' read -r nombre estado salud; do
     [ -z "$nombre" ] && continue
     [ -z "$salud" ] && salud="(sin healthcheck)"
     marca="ok"
     if [ "$estado" != "running" ] || [ "$salud" = "unhealthy" ]; then marca="PROBLEMA"; problemas=$((problemas + 1)); fi
-    printf '   %-36s %-10s %-18s %s\n' "$nombre" "$estado" "$salud" "$marca"
+    printf '   %-46s %-10s %-18s %s\n' "$nombre" "$estado" "$salud" "$marca"
     if [ "$MODO" = "--reparar" ] && [ "$salud" = "unhealthy" ]; then
       echo "      -> reiniciando $nombre"
       docker restart "$nombre" >/dev/null && REINICIADOS=1
