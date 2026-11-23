@@ -24,7 +24,8 @@
     ui.titulo(contenedor, 'Consumidores externos',
       'Cada universidad u ONG tiene su clave y su límite de peticiones por minuto. Si lo pasa, recibe 429 sin afectar a las demás.');
     const zona = h('div', null, ui.cargando());
-    contenedor.append(zona,
+    const zonaClave = h('div', { 'aria-live': 'polite' });
+    contenedor.append(zonaClave, zona,
       h('p', { class: 'suave pequeno' }, 'Los cambios se aplican de inmediato, sin reiniciar nada. Las claves no se muestran: BioHub solo guarda su huella.'));
     const pintar = async () => {
       try {
@@ -38,7 +39,63 @@
         vaciar(zona, ui.error(e));
       }
     };
+    contenedor.append(formularioAlta(zonaClave, pintar));
     await pintar();
+  }
+
+  /* ---------- Alta de un consumidor (RF-12, HU-09) ---------- */
+
+  function formularioAlta(zonaClave, alTerminar) {
+    const nombre = h('input', { id: 'nuevo-nombre', required: true, placeholder: 'Universidad Nacional · Grupo de ecología' });
+    const limite = h('input', { id: 'nuevo-limite', type: 'number', min: MINIMO, max: MAXIMO, step: 1, value: 100, inputmode: 'numeric' });
+    const resultado = h('div');
+    const boton = h('button', { type: 'submit', class: 'primario' }, 'Dar de alta');
+    const form = h('form', { class: 'tarjeta', novalidate: true },
+      h('h2', null, 'Nuevo consumidor'),
+      h('div', { class: 'fila-campos' },
+        h('div', null, h('label', { for: 'nuevo-nombre' }, 'Nombre de la universidad u ONG'), nombre, BioHub.formularios.error('nombre')),
+        h('div', null, h('label', { for: 'nuevo-limite' }, 'Límite por minuto'), limite,
+          h('div', { class: 'ayuda-campo' }, 'El acordado por defecto es 100 (S-05).'), BioHub.formularios.error('limitePorMinuto'))),
+      resultado, h('div', { class: 'acciones' }, boton));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      BioHub.formularios.limpiarErrores(form);
+      vaciar(resultado);
+      try {
+        const creado = await ui.conBotonOcupado(boton, () => api.post('/consumidores', {
+          nombre: nombre.value, limitePorMinuto: limite.value === '' ? null : Number(limite.value)
+        }), 'Creando…');
+        nombre.value = '';
+        vaciar(zonaClave, claveUnaVez(creado));
+        zonaClave.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        await alTerminar();
+      } catch (err) {
+        BioHub.formularios.marcarErrores(form, err.detalles || []);
+        vaciar(resultado, ui.error(err));
+      }
+    });
+    return form;
+  }
+
+  /** La API key se muestra UNA sola vez: BioHub guarda solo su huella y no la puede recuperar. */
+  function claveUnaVez(creado) {
+    const campo = h('input', { id: 'clave-nueva', readonly: true, value: creado.apiKey, style: 'font-family:ui-monospace,Consolas,monospace' });
+    const copiar = h('button', { type: 'button', class: 'secundario pequeno' }, 'Copiar');
+    copiar.addEventListener('click', async () => {
+      campo.select();
+      try {
+        await navigator.clipboard.writeText(creado.apiKey);
+        copiar.textContent = 'Copiada';
+      } catch (e) {
+        copiar.textContent = 'Selecciónela y cópiela con Ctrl+C';
+      }
+    });
+    return h('section', { class: 'tarjeta' },
+      ui.mensaje('aviso', creado.consumidor.nombre + ' quedó dado de alta. Copie su clave ahora y entréguesela por un canal seguro: no se volverá a mostrar.'),
+      h('label', { for: 'clave-nueva' }, 'API key (encabezado X-API-Key)'),
+      h('div', { class: 'acciones', style: 'margin-top:0' }, h('div', { style: 'flex:1 1 320px' }, campo), copiar),
+      h('button', { type: 'button', class: 'secundario', style: 'margin-top:12px', onClick: (e) => e.target.closest('section').remove() },
+        'Ya la guardé, ocultarla'));
   }
 
   function fila(c, alTerminar) {

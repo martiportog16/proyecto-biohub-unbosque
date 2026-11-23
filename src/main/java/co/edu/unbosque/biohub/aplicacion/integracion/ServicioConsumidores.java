@@ -1,8 +1,13 @@
 package co.edu.unbosque.biohub.aplicacion.integracion;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Base64;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
@@ -30,6 +35,18 @@ public class ServicioConsumidores {
         }
     }
 
+    public record NuevoConsumidor(String nombre, Integer limitePorMinuto) {
+    }
+
+    /**
+     * Lo que se devuelve UNA sola vez al dar de alta: la API key en claro. BioHub solo
+     * guarda su huella SHA-256, así que si se pierde no se puede recuperar.
+     */
+    public record ConsumidorCreado(VistaConsumidor consumidor, String apiKey) {
+    }
+
+    private static final SecureRandom AZAR = new SecureRandom();
+
     private final AdministracionConsumidores consumidores;
 
     public ServicioConsumidores(AdministracionConsumidores consumidores) {
@@ -38,6 +55,29 @@ public class ServicioConsumidores {
 
     public List<VistaConsumidor> listar() {
         return consumidores.listar().stream().map(VistaConsumidor::de).toList();
+    }
+
+    /** Alta de una universidad u ONG (RF-12, HU-09). Antes había que hacerlo con SQL. */
+    @Transactional
+    public ConsumidorCreado crear(NuevoConsumidor datos) {
+        List<String> errores = new ArrayList<>(Consumidor.erroresDeAlta(datos.nombre(), datos.limitePorMinuto()));
+        if (errores.isEmpty() && consumidores.existeNombre(datos.nombre().trim())) {
+            errores.add("nombre: ya existe un consumidor llamado '" + datos.nombre().trim() + "'");
+        }
+        if (!errores.isEmpty()) {
+            throw new ReglaDeNegocioException("El consumidor no es válido", errores);
+        }
+        String apiKey = nuevaApiKey();
+        int limite = datos.limitePorMinuto() == null ? Consumidor.LIMITE_INICIAL : datos.limitePorMinuto();
+        long id = consumidores.crear(datos.nombre().trim(), ServicioLimitePeticiones.huella(apiKey), limite);
+        return new ConsumidorCreado(new VistaConsumidor(id, datos.nombre().trim(), limite, true), apiKey);
+    }
+
+    /** 32 bytes al azar (256 bits) en Base64 sin relleno: imposible de adivinar. */
+    static String nuevaApiKey() {
+        byte[] bytes = new byte[32];
+        AZAR.nextBytes(bytes);
+        return "bh_" + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public VistaConsumidor cambiar(long id, CambioConsumidor cambio) {

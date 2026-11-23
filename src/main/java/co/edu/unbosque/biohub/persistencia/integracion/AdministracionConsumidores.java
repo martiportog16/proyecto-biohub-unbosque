@@ -20,4 +20,9 @@ public interface AdministracionConsumidores {
 
     /** Cambia el límite y si está activo. La API key nunca se cambia por aquí. */
     void actualizar(Consumidor consumidor);
+
+    boolean existeNombre(String nombre);
+
+    /** Da de alta un consumidor. Recibe la HUELLA de la API key, nunca la key. Devuelve el id. */
+    long crear(String nombre, String huellaApiKey, int limitePorMinuto);
 }

@@ -43,3 +43,23 @@ test('solo el administrador de la plataforma ve los consumidores', async ({ page
   await expect(page.getByRole('navigation').getByRole('link', { name: 'Consumidores externos' })).toHaveCount(0);
   expect((await api(page, 'GET', '/consumidores')).estado).toBe(403);
 });
+
+test('dar de alta una universidad muestra su clave una sola vez, y la clave funciona', async ({ page }) => {
+  await entrarComo(page, USUARIOS.adminPlataforma);
+  await page.goto('/consola/#/consumidores');
+  const nombre = 'Universidad de prueba ui ' + Date.now();
+  await page.getByLabel('Nombre de la universidad u ONG').fill(nombre);
+  await page.getByRole('button', { name: 'Dar de alta' }).click();
+  await expect(page.getByText(nombre + ' quedó dado de alta.', { exact: false })).toBeVisible();
+  const clave = await page.getByLabel('API key (encabezado X-API-Key)').inputValue();
+  expect(clave).toMatch(/^bh_/);
+  await expect(page.locator('tbody tr', { hasText: nombre })).toContainText('Activo');
+
+  const r = await page.request.get('/api/v1/estado', { headers: { 'X-API-Key': clave } });
+  expect(r.status()).toBe(200);
+
+  await page.getByRole('button', { name: 'Ya la guardé, ocultarla' }).click();
+  await expect(page.getByLabel('API key (encabezado X-API-Key)')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('main')).not.toContainText(clave);
+});
