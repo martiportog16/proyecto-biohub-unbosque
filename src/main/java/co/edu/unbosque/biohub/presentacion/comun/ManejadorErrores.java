@@ -20,6 +20,7 @@ import co.edu.unbosque.biohub.aplicacion.autenticacion.DemasiadosIntentosExcepti
 import co.edu.unbosque.biohub.aplicacion.comun.ConflictoException;
 import co.edu.unbosque.biohub.aplicacion.comun.NoEncontradoException;
 import co.edu.unbosque.biohub.aplicacion.comun.ReglaDeNegocioException;
+import co.edu.unbosque.biohub.aplicacion.comun.SinPermisoException;
 
 /**
  * Traduce las excepciones a códigos HTTP correctos (S16: "no responder siempre 200").
@@ -39,6 +40,11 @@ public class ManejadorErrores {
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<RespuestaError> sinPermiso(AccessDeniedException e) {
         return responder(HttpStatus.FORBIDDEN, "No tiene permiso para esta operación", List.of());
+    }
+
+    @ExceptionHandler(SinPermisoException.class)
+    ResponseEntity<RespuestaError> sinPermisoEnEsteCaso(SinPermisoException e) {
+        return responder(HttpStatus.FORBIDDEN, e.getMessage(), List.of());
     }
 
     @ExceptionHandler(NoEncontradoException.class)

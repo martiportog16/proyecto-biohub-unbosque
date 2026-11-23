@@ -12,7 +12,7 @@ Todas las rutas de Java son relativas a `src/main/java/co/edu/unbosque/biohub/`.
 | Capas cerradas: presentación → aplicación → dominio, y persistencia (ADR-02) | Paquetes `presentacion`, `aplicacion`, `dominio`, `persistencia` y `configuracion` | `CapasTest` (ArchUnit) en cada `mvnw verify` |
 | Zona expuesta y zona interna (RNF-07) | Solo Nginx publica un puerto (`docker-compose.yml`) | `scripts/verificar-red.sh` (PR-10) |
 | Credenciales distintas por rol (T-14) | `app_cientifico`, `app_publico` y `app_batch` (`V1`) | `PermisosBaseDeDatosIT` (PR-09) |
-| Interfaz científica, portal público y API externa | `infra/nginx/html/consola/`, `infra/nginx/html/index.html` y `/api/v1` | 49 pruebas en navegador (`scripts/pruebas-ui.sh`) y `scripts/suite-externa.sh` |
+| Interfaz científica, portal público y API externa | `infra/nginx/html/consola/`, `infra/nginx/html/index.html` y `/api/v1` | 54 pruebas en navegador (`scripts/pruebas-ui.sh`) y `scripts/suite-externa.sh` |
 
 ## 2. Los 7 módulos
 
@@ -134,6 +134,7 @@ En total se usan **dos patrones de diseño**: Strategy y Adapter (caché). Lo de
 | Precarga de caché (T-07) | Pendiente | No se hizo | Con caché de 3 s y doble borrado, la ficha se ve en milisegundos; precargar no mejoraba nada medible |
 | Pantallas por rol | Cada actor con sus casos de uso (diagrama de casos de uso) | Igual, desde el paquete 26 (ver sección 10) | La primera versión de la consola mostraba las pantallas científicas a los 5 roles científicos; la auditoría de alineación lo detectó |
 | Responsable de un equipo | "Investigador responsable" (HU-03, criterio 1) | Solo un investigador activo, desde el paquete 26 | Antes se aceptaba cualquier rol científico |
+| Gestión de usuarios | Pendiente (P-28: "autenticación y gestión de usuarios") | Pantalla "Usuarios y roles" desde el paquete 28 (ver sección 12) | Sin ella, un usuario nuevo o un cambio de rol exigían SQL |
 | Migración de datos (WBS 1.4.10) | Fuera de la entrega (P-22) | No se construyó | Ningún RF ni HU la pide y el Enunciado dice "no inventen alcance". La API de registro ya valida cada hallazgo: una migración futura solo tendría que llamarla |
 
 ## 8. Nombres que cambiaron entre los diagramas y el código
@@ -189,11 +190,11 @@ El diagrama de casos de uso del Entregable 2 une a cada actor solo con sus casos
 | --- | --- | --- |
 | Investigador | Registrar hallazgo, Hallazgos, Equipos de campo | CU-01, CU-03, CU-04 |
 | Administrador científico | Especies y fichas, Grupos taxonómicos | CU-02 |
-| Director científico | Hallazgos, Historial y reclasificación | CU-06 (y reconstruir la historia, Acta) |
+| Director científico | Hallazgos, Historial y reclasificación, Usuarios y roles (solo dar o quitar el alto rango) | CU-06 (y reconstruir la historia, Acta); S-01 |
 | Auditor científico | Hallazgos, Historial y reclasificación (solo lectura), Accesos a coordenadas | CU-07, P-18 |
 | Personal de alto rango | Hallazgos, Mapa de coordenadas (y "Ver la ubicación exacta" en cada hallazgo) | CU-08 |
 | Analista | Índices de presión | CU-13, CU-14 |
-| Administrador de la plataforma | Consumidores externos | CU-12 |
+| Administrador de la plataforma | Consumidores externos, Usuarios y roles | CU-12; P-28 |
 
 **El mapa y los enlaces.** Si una persona del personal científico abre un enlace al mapa (por ejemplo, uno que le compartieron), la consola no decide: le pregunta a `AutorizacionCoordenadas`. Para una especie en peligro responde 403 con el motivo, y el intento queda en el registro del auditor. Para una especie fuera de peligro lo permite (P-24). Así se ve en la demostración cómo actúa la autorización centralizada (RNF-06) sin herramientas técnicas.
 
@@ -227,8 +228,27 @@ El diagrama de casos de uso del Entregable 2 une a cada actor solo con sus casos
 | P-25 | Varios roles por usuario | Uno solo |
 | P-26 | Fórmula del índice y "zona" | Zona = departamento. Índice = max(0, (B − E) / B), donde E es el número de especies vistas en el mes y B el promedio de los hasta 3 meses anteriores |
 | P-27 | Permisos fuera de las coordenadas | Con `@PreAuthorize` en cada endpoint; el componente central queda solo para las coordenadas (RF-11) |
-| P-28 | Autenticación | JWT HS256 de 60 minutos y claves con BCrypt; bloqueo tras 10 intentos fallidos |
+| P-28 | Autenticación y gestión de usuarios | JWT HS256 de 60 minutos y claves con BCrypt; bloqueo tras 10 intentos fallidos. Gestión desde la consola (sección 12): la plataforma crea, cambia roles y desactiva; el alto rango lo da un director (S-01) |
 | P-29 | El "estado" de un hallazgo | La especie que tenía asignada en ese momento |
 | P-30 | Datos para consumidores externos | Solo atributos de texto, número, fecha y lista; nunca rutas GPS, archivos ni coordenadas |
 | P-31 | Dónde se guardan los consumidores | En la base (tabla `consumidor`), con la huella SHA-256 de la API key |
 | P-32 | Tipos de dato iniciales | Seis: texto, número, fecha, lista, ruta GPS y archivo |
+
+## 12. Gestión de usuarios (P-28, S-01)
+
+La Entrega 2 dejó pendiente la gestión de usuarios (P-28), y el supuesto S-01 del SRS dice que "el Instituto, a través de los directores científicos, define quién cuenta como personal de alto rango". Desde el paquete 28 se hace en la pantalla **Usuarios y roles**:
+
+| Quién | Qué puede hacer |
+| --- | --- |
+| Administrador de la plataforma | Crear usuarios con una **clave temporal** que se muestra una sola vez; cambiarles el rol; desactivarlos o reactivarlos. **No** puede dar ni quitar el alto rango |
+| Director científico | **Solo** dar o quitar el rol de alto rango, y solo al personal científico (S-01) |
+| Cualquier usuario | Cambiar su propia clave ("Cambiar clave", arriba a la derecha) |
+| Nadie | Cambiarse su propio rol ni desactivarse a sí mismo |
+
+Cómo se cumple:
+- **Reglas en el dominio:** `dominio/usuarios/ReglasGestionUsuarios` es lógica pura. Separa el permiso (403, `SinPermisoException`) de los datos inválidos (422). La prueba es `ReglasGestionUsuariosTest`.
+- **El rol del autor se lee de la base, no del token.** Si a alguien le quitaron un rol, su token de 60 minutos ya no le sirve para administrar (`ServicioUsuarios.autor`).
+- **Bitácora de solo inserción** (`cambio_usuario`, V11): cada alta, cambio de rol, desactivación o cambio de clave queda con autor, fecha y motivo. La aplicación no puede editarla ni borrarla (`REVOKE`), y el dueño de la base tampoco (trigger), igual que el historial (RNF-05).
+- **Privilegios mínimos (T-14):** de la tabla `usuario`, la aplicación solo puede cambiar el rol, si está activo y el hash de la clave. Un usuario nunca se borra: se desactiva.
+- **Segregación de interfaces:** `AdministracionUsuarios` va aparte de `RepositorioUsuarios`. El inicio de sesión y la autorización de coordenadas no pueden crear usuarios ni cambiarles el rol.
+- **Pruebas:** `UsuariosIT` (12 pruebas por la API real, una de ellas repetida con 5 roles: la plataforma no da alto rango, el director sí, el nuevo token trae el rol nuevo, un desactivado no entra, la bitácora es inmutable incluso para el dueño de la base) y `usuarios.spec.js` en el navegador.

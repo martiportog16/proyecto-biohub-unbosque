@@ -108,7 +108,9 @@
     vaciar(menu, [...grupos].map(([grupo, lista]) => [
       grupo ? h('div', { class: 'grupo' }, grupo) : null,
       lista.map((m) => h('a', { href: '#/' + m.id, 'data-modulo': m.id }, m.titulo))
-    ]));
+    ]),
+    // En el celular no cabe en la barra de arriba: va al final del menú
+    h('a', { href: '#/mi-clave', class: 'solo-celular', 'data-modulo': 'mi-clave' }, 'Cambiar mi clave'));
   }
 
   botonMenu.addEventListener('click', () => {

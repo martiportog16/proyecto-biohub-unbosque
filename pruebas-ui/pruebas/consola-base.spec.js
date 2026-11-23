@@ -67,11 +67,11 @@ test.describe('Menú según el rol', () => {
   const ESPERADO = {
     investigador: ['Registrar hallazgo', 'Hallazgos', 'Equipos de campo'],
     adminCientifico: ['Especies y fichas', 'Grupos taxonómicos'],
-    director: ['Hallazgos', 'Historial y reclasificación'],
+    director: ['Hallazgos', 'Historial y reclasificación', 'Usuarios y roles'],
     auditor: ['Hallazgos', 'Historial y reclasificación', 'Accesos a coordenadas'],
     altoRango: ['Hallazgos', 'Mapa de coordenadas'],
     analista: ['Índices de presión'],
-    adminPlataforma: ['Consumidores externos']
+    adminPlataforma: ['Consumidores externos', 'Usuarios y roles']
   };
 
   for (const [quien, opciones] of Object.entries(ESPERADO)) {

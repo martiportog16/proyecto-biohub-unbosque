@@ -6,11 +6,11 @@
   const QUE_HACE = {
     INVESTIGADOR: 'Registra hallazgos de campo y asocia cada equipo de campo a su responsable.',
     ADMINISTRADOR_CIENTIFICO: 'Define las fichas taxonómicas de especies y grupos, sin cambiar el código.',
-    DIRECTOR_CIENTIFICO: 'Reclasifica hallazgos cuando hay nueva evidencia, dejando el motivo.',
+    DIRECTOR_CIENTIFICO: 'Reclasifica hallazgos cuando hay nueva evidencia y decide quién es personal de alto rango.',
     AUDITOR_CIENTIFICO: 'Revisa el historial de cada hallazgo y quién consultó coordenadas exactas.',
     ALTO_RANGO: 'Consulta el mapa con las coordenadas exactas, incluidas las de especies en peligro.',
     ANALISTA: 'Consulta los índices mensuales de presión sobre los ecosistemas.',
-    ADMINISTRADOR_PLATAFORMA: 'Administra los consumidores externos de la API y sus límites.'
+    ADMINISTRADOR_PLATAFORMA: 'Administra los usuarios y sus roles, y los consumidores externos de la API.'
   };
 
   BioHub.registrar({

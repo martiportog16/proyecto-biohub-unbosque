@@ -66,11 +66,13 @@ input[type=checkbox] { width: auto; margin-right: 6px; }
 .quien { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: .9rem; }
 .quien .chip { background: rgba(255,255,255,.18); color: #fff; }
 .quien button.secundario { color: #fff; border-color: rgba(255,255,255,.5); }
+.quien .enlace-barra { color: #fff; font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .boton-menu { display: none; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); padding: 5px 10px; }
 .menu { background: var(--tarjeta); border-right: 1px solid var(--borde); padding: 14px 10px; }
 .menu a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--texto); text-decoration: none; font-size: .95rem; margin-bottom: 2px; }
 .menu a:hover { background: var(--fondo); }
 .menu a[aria-current=page] { background: var(--marca-clara); color: var(--marca); font-weight: 600; }
+.menu a.solo-celular { display: none; }
 .menu .grupo { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); margin: 14px 12px 6px; }
 main { padding: 24px 28px 48px; max-width: 1100px; width: 100%; min-width: 0; }  /* min-width: 0 deja que las tablas anchas se desplacen dentro, sin estirar la página */
 main:focus { outline: none; }
@@ -81,6 +83,12 @@ main > .subtitulo { color: var(--suave); margin: 0 0 20px; }
   .consola { grid-template-columns: 1fr; }
   .boton-menu { display: inline-block; }
   .marca span, #nombre-usuario { display: none; }
+  .quien { gap: 8px; }
+  .quien .enlace-barra { display: none; }
+  .quien { min-width: 0; }
+  .quien .chip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .quien button { flex-shrink: 0; }
+  .menu a.solo-celular { display: block; border-top: 1px solid var(--borde); border-radius: 0; margin-top: 10px; padding-top: 14px; }
   .barra { gap: 8px; padding: 10px 12px; }
   main h1 { font-size: 1.3rem; }
   .menu { display: none; border-right: 0; border-bottom: 1px solid var(--borde); }
