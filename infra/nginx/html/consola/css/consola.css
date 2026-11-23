@@ -139,7 +139,12 @@ a.boton.secundario { background: transparent; color: var(--marca); border-color:
 .mapa { height: 480px; border: 1px solid var(--borde); border-radius: 12px; margin: 12px 0 16px; background: var(--fondo); }
 .mapa-pequeno { height: 260px; }
 .leaflet-container { font: inherit; background: #eef3f6; }
-@media (prefers-color-scheme: dark) { .leaflet-container { background: #1a2328; } }
+@media (prefers-color-scheme: dark) {
+  .leaflet-container { background: #1a2328; }
+  .leaflet-container .leaflet-control-attribution { background: rgba(26, 35, 40, .8); color: #b9c6bf; }
+  .leaflet-bar a { background: #24312b; color: #e3ebe6; border-bottom-color: #3a4a42; }
+  .leaflet-bar a:hover { background: #2f3f37; }
+}
 .leaflet-popup-content { font-size: .9rem; line-height: 1.5; }
 .leaflet-popup-content a { color: #1d6b4b; }
 @media (max-width: 760px) { .mapa { height: 360px; } }
