@@ -12,7 +12,7 @@ En la sustentación presenta **una sola persona** en nombre del grupo, con máxi
 
 Entrega final: **martes 24 de noviembre** (Sesión 26). El miércoles 25 es solo para los grupos que no alcancen a pasar el martes.
 
-**Súbanlos en el orden de la tabla.** Cada paquete trae los archivos completos, así que uno que se sube después ya incluye los cambios de los anteriores. El orden se comprobó armando el proyecto desde cero con los 27 paquetes: el resultado es idéntico a `biohub-proyecto-completo.zip`.
+**Súbanlos en el orden de la tabla.** Cada paquete trae los archivos completos, así que uno que se sube después ya incluye los cambios de los anteriores. El orden se comprobó armando el proyecto desde cero con los 28 paquetes: el resultado es idéntico a `biohub-proyecto-completo.zip`.
 
 | Orden | Paquete | Dueño | Qué deja | Historias / pruebas |
 | --- | --- | --- | --- | --- |
@@ -45,9 +45,10 @@ Entrega final: **martes 24 de noviembre** (Sesión 26). El miércoles 25 es solo
 | 27 | 25 | Karen | Cierre: documentos finales y últimos ajustes | Todos los RNF |
 | 28 | 26 | Paula | Auditoría de alineación: cada rol ve las pantallas de sus casos de uso; equipos solo del investigador | CU-01 a CU-14, HU-03 |
 | 29 | 27 | Karen | Auditoría de alineación: documentos (C4 con tecnologías, decisiones P-xx, SOLID, plan) | Sesiones 14, 18 y 26 |
+| 30 | 28 | Paula | Gestión de usuarios: crear, cambiar rol, desactivar; el alto rango lo da un director; cambiar mi clave | P-28, S-01 |
 
 (El 12 va antes que el 11: así se armó y se verificó. Si alguno ya subió el 11 primero, no pasa nada: el 12 no toca los archivos del 11.)
 
-**Cuántos paquetes tiene cada uno:** Sergio 6 · Martin 6 · Daniel 6 · Paula 6 · Karen 5. Martin, Daniel y Sergio llevan las olas 1 a 8; Paula y Karen, las olas 9 a 15.
+**Cuántos paquetes tiene cada uno:** Sergio 6 · Martin 6 · Daniel 6 · Paula 7 · Karen 5. Martin, Daniel y Sergio llevan las olas 1 a 8; Paula y Karen, las olas 9 a 15.
 
 Desde el paquete 22, `docker compose up` exige el archivo `.env`: corran una vez `./scripts/preparar-env.sh`.
