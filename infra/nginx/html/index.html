@@ -4,68 +4,126 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BioHub · Consulta pública</title>
+  <link rel="icon" href="/img/biohub.svg" type="image/svg+xml">
   <!--
     Portal público (HU-04). Página estática servida por Nginx.
     Solo llama a /api/publico/**, que Nginx envía al grupo público (caché + réplica).
     Nunca muestra coordenadas: la API pública no las tiene.
   -->
   <style>
+    /* Misma identidad que la consola: selva, frailejón y curvas de nivel. Fuentes servidas aquí mismo. */
+    @font-face { font-family: "Bricolage Grotesque"; src: url("/fuentes/bricolage-grotesque.woff") format("woff"); font-weight: 200 800; font-stretch: 75% 100%; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url("/fuentes/atkinson-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url("/fuentes/atkinson-bold.woff") format("woff"); font-weight: 700; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url("/fuentes/atkinson-italic.woff") format("woff"); font-weight: 400; font-style: italic; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url("/fuentes/atkinson-bolditalic.woff") format("woff"); font-weight: 700; font-style: italic; font-display: swap; }
+    @font-face { font-family: "Cifras BioHub"; src: url("/fuentes/bricolage-grotesque.woff") format("woff"); font-weight: 200 800; font-style: normal; unicode-range: U+0030-0039; font-display: swap; }  /* cifras sin el cero tachado de Atkinson */
+    @font-face { font-family: "Cifras BioHub"; src: url("/fuentes/bricolage-grotesque.woff") format("woff"); font-weight: 200 800; font-style: italic; unicode-range: U+0030-0039; font-display: swap; }
     :root {
-      --fondo: #f6f8f5; --tarjeta: #ffffff; --texto: #1f2d27; --suave: #5b6b63;
-      --marca: #1d6b4b; --marca-clara: #e3f0e9; --borde: #d9e2dc; --alerta: #a3372a; --alerta-clara: #fbe9e6;
+      --titulos: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+      --cuerpo: "Cifras BioHub", "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+      --selva: #0e3b2e; --selva-texto: #e7f1ea; --selva-suave: #a7c8b7; --frailejon: #e4b83a;
+      --fondo: #f1f4ef; --tarjeta: #ffffff; --texto: #15211b; --suave: #56665d;
+      --marca: #1c6e4c; --marca-clara: #e2efe6; --borde: #d5ddd5; --borde-fuerte: #b9c6bc;
+      --alerta: #ad3227; --alerta-clara: #fbe8e4; --foco: #0e3b2e;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --fondo: #121815; --tarjeta: #1b231f; --texto: #e6eee9; --suave: #9fb0a7;
-        --marca: #6fcf9f; --marca-clara: #213a2e; --borde: #2c3832; --alerta: #f09a8c; --alerta-clara: #3a2320;
+        --selva: #0b2a21;
+        --fondo: #0f1613; --tarjeta: #17211c; --texto: #e4ece7; --suave: #9cb0a5;
+        --marca: #72d1a0; --marca-clara: #1d3529; --borde: #26332c; --borde-fuerte: #364840;
+        --alerta: #f29b8c; --alerta-clara: #3b221e; --foco: #e4b83a;
       }
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--fondo); color: var(--texto); line-height: 1.5; }
-    header { background: var(--marca); color: #fff; padding: 20px 16px; }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    header p { margin: 4px 0 0; opacity: .9; }
-    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
-    form { display: flex; gap: 8px; }
+    body { margin: 0; font-family: var(--cuerpo); font-size: 16px; background: var(--fondo); color: var(--texto); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    a { color: var(--marca); text-underline-offset: 3px; }
+    :focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+    header :focus-visible { outline-color: var(--frailejon); }
+
+    /* Cabecera: la búsqueda es lo primero que se ve */
+    header { background: var(--selva) url("/img/curvas-de-nivel.svg") center / cover no-repeat; color: var(--selva-texto); }
+    .cabecera { max-width: 860px; margin: 0 auto; padding: 22px 20px 44px; }
+    .logo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 52px; }
+    .logo strong { font-family: var(--titulos); font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .logo strong::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--frailejon); }
+    .logo a { color: var(--selva-texto); font-size: .92rem; }
+    header h1 { font-family: var(--titulos); font-weight: 700; font-stretch: 85%; font-size: clamp(2.3rem, 6vw, 3.8rem); line-height: 1; letter-spacing: -0.03em; margin: 0 0 12px; color: #fff; }
+    header p { margin: 0 0 26px; color: var(--selva-suave); max-width: 52ch; font-size: 1.05rem; }
+    form { display: flex; gap: 0; background: var(--tarjeta); border-radius: 999px; padding: 6px; box-shadow: 0 14px 34px -16px rgba(0,0,0,.55); }
     label.oculto { position: absolute; left: -9999px; }
-    input[type=search] { flex: 1; font-size: 1.05rem; padding: 12px 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--tarjeta); color: var(--texto); }
-    button { font-size: 1rem; padding: 12px 18px; border: 0; border-radius: 10px; background: var(--marca); color: #fff; cursor: pointer; }
-    button.enlace { background: none; color: var(--marca); padding: 0; font-size: .95rem; }
-    .ayuda { color: var(--suave); font-size: .9rem; margin: 8px 0 20px; }
-    ul.resultados { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-    ul.resultados button { width: 100%; text-align: left; background: var(--tarjeta); color: var(--texto); border: 1px solid var(--borde); padding: 14px 16px; }
-    ul.resultados button:hover, ul.resultados button:focus { border-color: var(--marca); outline: none; }
-    .cientifico { font-style: italic; font-weight: 600; }
+    input[type=search] { flex: 1; min-width: 0; font: inherit; font-size: 1.1rem; padding: 10px 18px; border: 0; background: transparent; color: var(--texto); }
+    input[type=search]:focus { outline: none; }
+    form:focus-within { outline: 3px solid var(--frailejon); outline-offset: 3px; }
+    .firma { display: flex; gap: 14px; align-items: center; }
+    .firma img { display: block; height: 60px; width: auto; }
+    .proyecto { display: inline-block; margin-top: 4px; }
+    button { font: inherit; font-weight: 700; font-size: 1rem; padding: 11px 24px; border: 0; border-radius: 999px; background: var(--marca); color: #fff; cursor: pointer; }
+    @media (prefers-color-scheme: dark) { button { color: #08160f; } }
+    button.enlace { background: none; color: var(--marca); padding: 0; font-size: .95rem; margin-bottom: 18px; }
+    .ayuda { color: var(--selva-suave); font-size: .9rem; margin: 12px 4px 0; }
+
+    main { max-width: 860px; margin: 0 auto; padding: 30px 20px 56px; }
+
+    /* Resultados: como etiquetas de colección, nombre científico primero */
+    ul.resultados { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--borde-fuerte); }
+    ul.resultados li { border-bottom: 1px solid var(--borde); }
+    ul.resultados button {
+      width: 100%; text-align: left; background: transparent; color: var(--texto); border-radius: 0; font-weight: 400;
+      padding: 16px 6px; display: grid; grid-template-columns: 1fr auto; column-gap: 16px; align-items: baseline;
+    }
+    ul.resultados button:hover .cientifico, ul.resultados button:focus-visible .cientifico { color: var(--marca); }
+    ul.resultados button:focus-visible { outline-offset: -3px; }
+    .cientifico { font-style: italic; font-weight: 700; font-size: 1.18rem; }
     .comun { color: var(--suave); }
-    .etiqueta { display: inline-block; font-size: .8rem; padding: 2px 8px; border-radius: 999px; background: var(--marca-clara); color: var(--marca); margin-left: 6px; }
+    .resultados .comun { grid-column: 1; }
+    .resultados .conteo { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; font-family: var(--titulos); font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+    .resultados .conteo small { display: block; font-family: var(--cuerpo); font-size: .78rem; font-weight: 400; color: var(--suave); margin-top: 4px; }
+    .etiqueta { display: inline-block; font-style: normal; font-size: .78rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--marca-clara); color: var(--marca); margin-left: 10px; vertical-align: 2px; }
     .etiqueta.peligro { background: var(--alerta-clara); color: var(--alerta); }
-    .ficha { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 20px; }
-    .ficha h2 { margin: 8px 0 0; font-style: italic; }
-    .ficha h3 { margin: 24px 0 8px; font-size: 1rem; }
-    .cifra { font-size: 2rem; font-weight: 700; color: var(--marca); }
+
+    /* Ficha de una especie */
+    .ficha h2 { font-style: italic; font-weight: 700; font-size: clamp(1.9rem, 4.6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.01em; margin: 0; }
+    .ficha > .comun { font-size: 1.15rem; margin: 6px 0 22px; }
+    .ficha h3 { font-family: var(--titulos); font-weight: 650; font-size: 1.2rem; margin: 34px 0 10px; }
+    .resumen { display: flex; align-items: baseline; gap: 12px; padding: 18px 0; border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde); margin: 0; }
+    .cifra { font-family: var(--titulos); font-size: 3rem; font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--marca); font-variant-numeric: tabular-nums; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--borde); }
-    th { color: var(--suave); font-weight: 600; font-size: .9rem; }
-    .nota { background: var(--marca-clara); border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin-top: 20px; }
-    .mensaje { color: var(--suave); padding: 16px 0; }
-    footer { color: var(--suave); font-size: .85rem; text-align: center; padding: 24px 16px; }
-    footer a { color: var(--marca); }
+    th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--borde); }
+    th { color: var(--suave); font-weight: 700; font-size: .86rem; border-bottom-color: var(--borde-fuerte); }
+    td:nth-child(2), th:nth-child(2) { text-align: right; font-variant-numeric: tabular-nums; }
+    .ficha ul { padding-left: 20px; margin: 0; }
+    .ficha ul li { margin: 3px 0; }
+    .nota { border-left: 4px solid var(--alerta); background: var(--alerta-clara); color: var(--texto); border-radius: 6px; padding: 12px 16px; font-size: .95rem; margin-top: 28px; }
+    .mensaje { color: var(--suave); padding: 18px 6px; }
+    footer { border-top: 1px solid var(--borde); color: var(--suave); font-size: .88rem; }
+    footer div { max-width: 860px; margin: 0 auto; padding: 22px 20px 32px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+    footer p { margin: 0; max-width: 60ch; }
+    footer nav { display: flex; gap: 18px; }
+    @media (max-width: 560px) {
+      .logo { margin-bottom: 30px; }
+      .cabecera { padding-bottom: 30px; }
+      button { padding: 10px 16px; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>BioHub</h1>
-    <p>Inventario nacional de biodiversidad · consulta pública</p>
+    <div class="cabecera">
+      <div class="logo"><strong>BioHub</strong><a href="/consola/">Consola científica</a></div>
+      <h1>Especies de Colombia</h1>
+      <p>Consulta qué especies ha registrado el inventario nacional de biodiversidad y en qué departamentos se han visto.</p>
+      <form id="formulario" role="search">
+        <label class="oculto" for="texto">Buscar especie</label>
+        <input id="texto" type="search" placeholder="Oso, mirla, Ateles…" autocomplete="off">
+        <button type="submit">Buscar</button>
+      </form>
+      <p class="ayuda">Nombre común o científico; no importan las tildes ni las mayúsculas. Cada <strong>hallazgo</strong> es un registro de la especie hecho por un investigador en campo.</p>
+    </div>
   </header>
 
   <main>
     <section id="busqueda">
-      <form id="formulario" role="search">
-        <label class="oculto" for="texto">Buscar especie</label>
-        <input id="texto" type="search" placeholder="Busca una especie, por ejemplo: oso, mirla, Ateles" autocomplete="off">
-        <button type="submit">Buscar</button>
-      </form>
-      <p class="ayuda">Escribe el nombre común o científico. No importan las tildes ni las mayúsculas.</p>
       <ul id="resultados" class="resultados" aria-live="polite"></ul>
     </section>
 
@@ -73,8 +131,16 @@
   </main>
 
   <footer>
-    Por protección de las especies, BioHub solo muestra el <strong>departamento</strong> donde se vio cada especie, nunca la ubicación exacta.
-    · <a href="/swagger-ui.html">API</a> · <a href="/consola/">Personal del Instituto</a>
+    <div>
+      <div class="firma">
+        <picture>
+          <source srcset="/img/unbosque-blanco.png" media="(prefers-color-scheme: dark)">
+          <img src="/img/unbosque.png" alt="Universidad El Bosque" width="54" height="60">
+        </picture>
+        <p>Para proteger a las especies, BioHub solo muestra el <strong>departamento</strong> donde se vio cada una, nunca la ubicación exacta.<br><span class="proyecto">Proyecto de Ingeniería de Software 2 · Universidad El Bosque</span></p>
+      </div>
+      <nav aria-label="Otros accesos"><a href="/swagger-ui.html">API</a><a href="/consola/">Personal del Instituto</a></nav>
+    </div>
   </footer>
 
   <script>
@@ -83,6 +149,11 @@
     const busqueda = document.getElementById('busqueda');
 
     // Escapa el texto antes de ponerlo en la página (los nombres vienen de la base)
+    const formatoFecha = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    function fechaBonita(iso) {   // "2026-11-22" -> "22 nov 2026", igual que en la consola
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? new Date(iso + 'T00:00:00Z') : null;
+      return d ? formatoFecha.format(d).replace(/\./g, '').replace(/ de /g, ' ') : (iso || '—');
+    }
     const seguro = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     const etiquetas = (e) => e.enPeligro ? '<span class="etiqueta peligro">En peligro</span>' : '';
@@ -100,13 +171,14 @@
       try {
         const especies = await pedir('/api/publico/especies?buscar=' + encodeURIComponent(texto));
         if (especies.length === 0) {
-          resultados.innerHTML = '<li class="mensaje">No hay especies con ese nombre.</li>';
+          resultados.innerHTML = '<li class="mensaje">No encontramos esa especie. Prueba con el nombre común, por ejemplo oso o mirla.</li>';
           return;
         }
         resultados.innerHTML = especies.map(e => `
           <li><button type="button" data-id="${e.id}">
-            <span class="cientifico">${seguro(e.nombreCientifico)}</span>${etiquetas(e)}<br>
-            <span class="comun">${seguro(e.nombreComun)} · ${e.totalHallazgos} hallazgo${e.totalHallazgos === 1 ? '' : 's'}</span>
+            <span><span class="cientifico">${seguro(e.nombreCientifico)}</span>${etiquetas(e)}</span>
+            <span class="conteo">${e.totalHallazgos}<small>hallazgo${e.totalHallazgos === 1 ? '' : 's'}</small></span>
+            <span class="comun">${seguro(e.nombreComun)}</span>
           </button></li>`).join('');
       } catch (err) {
         resultados.innerHTML = `<li class="mensaje">${seguro(err.message)}</li>`;
@@ -124,7 +196,7 @@
           : '<li>Sin variables definidas</li>';
         const departamentos = f.departamentos.length
           ? `<table><thead><tr><th>Departamento</th><th>Hallazgos</th><th>Última observación</th></tr></thead><tbody>
-              ${f.departamentos.map(d => `<tr><td>${seguro(d.departamento)}</td><td>${d.hallazgos}</td><td>${seguro(d.ultimaObservacion)}</td></tr>`).join('')}
+              ${[...f.departamentos].sort((a, b) => b.hallazgos - a.hallazgos).map(d => `<tr><td>${seguro(d.departamento)}</td><td>${d.hallazgos}</td><td>${seguro(fechaBonita(d.ultimaObservacion))}</td></tr>`).join('')}
              </tbody></table>`
           : '<p class="mensaje">Todavía no hay hallazgos registrados.</p>';
         detalle.innerHTML = `
@@ -132,7 +204,7 @@
           <article class="ficha">
             <h2>${seguro(f.nombreCientifico)}${etiquetas(f)}</h2>
             <p class="comun">${seguro(f.nombreComun)}</p>
-            <p><span class="cifra">${f.totalHallazgos}</span> hallazgo${f.totalHallazgos === 1 ? '' : 's'} registrado${f.totalHallazgos === 1 ? '' : 's'}</p>
+            <p class="resumen"><span class="cifra">${f.totalHallazgos}</span> hallazgo${f.totalHallazgos === 1 ? '' : 's'} registrado${f.totalHallazgos === 1 ? '' : 's'}</p>
             <h3>Dónde se ha visto</h3>
             ${departamentos}
             <h3>Qué registran los investigadores</h3>
@@ -153,6 +225,7 @@
 
     document.getElementById('formulario').addEventListener('submit', (ev) => {
       ev.preventDefault();
+      if (busqueda.hidden) { history.pushState({}, '', '/'); mostrarBusqueda(); }   // la búsqueda está arriba también cuando se ve una ficha
       buscar(document.getElementById('texto').value);
     });
 

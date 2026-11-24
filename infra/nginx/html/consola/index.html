@@ -13,6 +13,7 @@
     Cada pantalla es un archivo en js/modulos/ que se registra solo (BioHub.registrar).
     Para agregar una pantalla: crear el archivo y agregar su <script> antes de app.js.
   -->
+  <link rel="icon" href="/img/biohub.svg" type="image/svg+xml">
   <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css">
   <link rel="stylesheet" href="css/consola.css">
 </head>
@@ -21,9 +22,18 @@
 
   <!-- Pantalla de inicio de sesión -->
   <section id="pantalla-login" class="login" hidden>
+    <div class="login-arte" aria-hidden="true">
+      <div class="logo">BioHub</div>
+      <div>
+        <h2>Inventario nacional de biodiversidad</h2>
+        <p>Cada hallazgo de campo con su especie, su lugar y su historia, y las ubicaciones sensibles protegidas.</p>
+      </div>
+      <div class="pie"><img src="/img/unbosque-blanco.png" alt="" width="83" height="92"><span>Proyecto de Ingeniería de Software 2<br>Universidad El Bosque</span></div>
+    </div>
+    <div class="login-lado">
     <div class="login-caja">
-      <h1>BioHub</h1>
-      <p class="suave">Consola científica del Instituto</p>
+      <h1>Entrar a la consola</h1>
+      <p class="suave">Personal científico del Instituto</p>
       <form id="form-login" novalidate>
         <label for="correo">Correo institucional</label>
         <input id="correo" name="correo" type="email" autocomplete="username" required>
@@ -38,6 +48,7 @@
         <ul id="usuarios-demo"></ul>
       </details>
       <p class="suave pequeno"><a href="/">Ir al portal público</a></p>
+    </div>
     </div>
   </section>
 
