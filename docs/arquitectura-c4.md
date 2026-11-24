@@ -1,6 +1,6 @@
-# Arquitectura tal como quedó (C4)
+# Arquitectura del Sistema (C4)
 
-Los diagramas C4 del Entregable 2 no nombraban tecnologías, porque estaban pendientes (P-07). La Sesión 14 pide que el **nivel 2 (contenedores)** muestre la tecnología de cada contenedor y cómo se comunica con los demás. Estos son los diagramas del sistema construido, escritos como código (Mermaid), como recomienda Simon Brown: viven en el repositorio y se revisan en cada pull request. GitHub los dibuja solo.
+Estos son los diagramas del sistema construido, como recomienda Simon Brown: viven en el repositorio y se revisan en cada pull request. GitHub los dibuja solo.
 
 Lo que cambió frente al Entregable 2 está en [`trazabilidad.md`](trazabilidad.md), secciones 7, 8 y 11.
 
