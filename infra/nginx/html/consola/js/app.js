@@ -57,7 +57,8 @@
         const s = await api('POST', '/auth/login', { correo, clave }, { sinSesion: true });
         sesion.guardar({
           token: s.token, nombre: s.nombre, rol: s.rol, correo,
-          expiraEn: Date.now() + (s.expiraEnSegundos - 30) * 1000
+          expiraEn: Date.now() + (s.expiraEnSegundos - 30) * 1000,
+          duracionMs: (s.expiraEnSegundos - 30) * 1000
         });
         const yo = await api.get('/usuarios/yo');
         sesion.guardar(Object.assign(sesion.actual(), { id: yo.id }));
@@ -100,17 +101,49 @@
   }
 
   function armarMenu() {
+    const s = sesion.actual();
     const grupos = new Map();
     for (const m of disponibles()) {
       if (!grupos.has(m.grupo)) grupos.set(m.grupo, []);
       grupos.get(m.grupo).push(m);
     }
-    vaciar(menu, [...grupos].map(([grupo, lista]) => [
-      grupo ? h('div', { class: 'grupo' }, grupo) : null,
-      lista.map((m) => h('a', { href: '#/' + m.id, 'data-modulo': m.id }, m.titulo))
-    ]),
-    // En el celular no cabe en la barra de arriba: va al final del menú
-    h('a', { href: '#/mi-clave', class: 'solo-celular', 'data-modulo': 'mi-clave' }, 'Cambiar mi clave'));
+    const iniciales = (s.nombre || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+    const restante = h('span', { class: 'sesion-restante' });
+    const barra = h('div', { class: 'sesion-barra', 'aria-hidden': 'true' }, h('div'));
+    vaciar(menu,
+      // Quién está dentro y cuánto le queda de sesión (la sesión dura 60 minutos)
+      h('div', { class: 'tu-sesion' },
+        h('span', { class: 'iniciales', 'aria-hidden': 'true' }, iniciales),
+        h('div', { class: 'tu-sesion-datos' },
+          h('strong', null, s.nombre),
+          h('span', null, ROLES[s.rol] || s.rol)),
+        h('div', { class: 'tu-sesion-tiempo' }, restante, barra)),
+      h('div', { class: 'menu-opciones' },
+        [...grupos].map(([grupo, lista]) => h('div', { class: 'menu-grupo' },
+          grupo ? h('div', { class: 'grupo' }, grupo) : null,
+          lista.map((m) => h('a', { href: '#/' + m.id, 'data-modulo': m.id }, m.titulo))
+        )),
+        // En el celular no cabe en la barra de arriba: va al final del menú
+        h('a', { href: '#/mi-clave', class: 'solo-celular', 'data-modulo': 'mi-clave' }, 'Cambiar mi clave')));
+    pintarTiempo(restante, barra);
+  }
+
+  // Minutos que le quedan a la sesión; se repinta cada 20 s mientras la consola está abierta
+  let relojSesion = null;
+  function pintarTiempo(texto, barra) {
+    clearInterval(relojSesion);
+    const pintar = () => {
+      const s = sesion.actual();
+      if (!s) { clearInterval(relojSesion); return; }
+      const ms = Math.max(0, s.expiraEn - Date.now());
+      const total = s.duracionMs || 60 * 60 * 1000;
+      const minutos = Math.ceil(ms / 60000);
+      texto.textContent = minutos <= 1 ? 'Su sesión termina en menos de 1 minuto' : 'Sesión: quedan ' + minutos + ' min';
+      barra.firstChild.style.width = Math.min(100, (ms / total) * 100).toFixed(1) + '%';
+      barra.classList.toggle('poca', ms < 5 * 60000);
+    };
+    pintar();
+    relojSesion = setInterval(pintar, 20000);
   }
 
   botonMenu.addEventListener('click', () => {
