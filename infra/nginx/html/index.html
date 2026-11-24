@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BioHub · Consulta pública</title>
+  <link rel="icon" href="/img/biohub.svg" type="image/svg+xml">
   <!--
     Portal público (HU-04). Página estática servida por Nginx.
     Solo llama a /api/publico/**, que Nginx envía al grupo público (caché + réplica).
@@ -24,20 +25,21 @@
       --selva: #0e3b2e; --selva-texto: #e7f1ea; --selva-suave: #a7c8b7; --frailejon: #e4b83a;
       --fondo: #f1f4ef; --tarjeta: #ffffff; --texto: #15211b; --suave: #56665d;
       --marca: #1c6e4c; --marca-clara: #e2efe6; --borde: #d5ddd5; --borde-fuerte: #b9c6bc;
-      --alerta: #ad3227; --alerta-clara: #fbe8e4;
+      --alerta: #ad3227; --alerta-clara: #fbe8e4; --foco: #0e3b2e;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --selva: #0b2a21;
         --fondo: #0f1613; --tarjeta: #17211c; --texto: #e4ece7; --suave: #9cb0a5;
         --marca: #72d1a0; --marca-clara: #1d3529; --borde: #26332c; --borde-fuerte: #364840;
-        --alerta: #f29b8c; --alerta-clara: #3b221e;
+        --alerta: #f29b8c; --alerta-clara: #3b221e; --foco: #e4b83a;
       }
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--cuerpo); font-size: 16px; background: var(--fondo); color: var(--texto); line-height: 1.55; -webkit-font-smoothing: antialiased; }
     a { color: var(--marca); text-underline-offset: 3px; }
-    :focus-visible { outline: 3px solid var(--frailejon); outline-offset: 2px; }
+    :focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+    header :focus-visible { outline-color: var(--frailejon); }
 
     /* Cabecera: la búsqueda es lo primero que se ve */
     header { background: var(--selva) url("/img/curvas-de-nivel.svg") center / cover no-repeat; color: var(--selva-texto); }
@@ -53,6 +55,9 @@
     input[type=search] { flex: 1; min-width: 0; font: inherit; font-size: 1.1rem; padding: 10px 18px; border: 0; background: transparent; color: var(--texto); }
     input[type=search]:focus { outline: none; }
     form:focus-within { outline: 3px solid var(--frailejon); outline-offset: 3px; }
+    .firma { display: flex; gap: 14px; align-items: center; }
+    .firma img { display: block; height: 60px; width: auto; }
+    .proyecto { display: inline-block; margin-top: 4px; }
     button { font: inherit; font-weight: 700; font-size: 1rem; padding: 11px 24px; border: 0; border-radius: 999px; background: var(--marca); color: #fff; cursor: pointer; }
     @media (prefers-color-scheme: dark) { button { color: #08160f; } }
     button.enlace { background: none; color: var(--marca); padding: 0; font-size: .95rem; margin-bottom: 18px; }
@@ -113,7 +118,7 @@
         <input id="texto" type="search" placeholder="Oso, mirla, Ateles…" autocomplete="off">
         <button type="submit">Buscar</button>
       </form>
-      <p class="ayuda">Nombre común o científico. No importan las tildes ni las mayúsculas.</p>
+      <p class="ayuda">Nombre común o científico; no importan las tildes ni las mayúsculas. Cada <strong>hallazgo</strong> es un registro de la especie hecho por un investigador en campo.</p>
     </div>
   </header>
 
@@ -127,7 +132,13 @@
 
   <footer>
     <div>
-      <p>Para proteger a las especies, BioHub solo muestra el <strong>departamento</strong> donde se vio cada una, nunca la ubicación exacta.</p>
+      <div class="firma">
+        <picture>
+          <source srcset="/img/unbosque-blanco.png" media="(prefers-color-scheme: dark)">
+          <img src="/img/unbosque.png" alt="Universidad El Bosque" width="54" height="60">
+        </picture>
+        <p>Para proteger a las especies, BioHub solo muestra el <strong>departamento</strong> donde se vio cada una, nunca la ubicación exacta.<br><span class="proyecto">Proyecto de Ingeniería de Software 2 · Universidad El Bosque</span></p>
+      </div>
       <nav aria-label="Otros accesos"><a href="/swagger-ui.html">API</a><a href="/consola/">Personal del Instituto</a></nav>
     </div>
   </footer>
@@ -138,6 +149,11 @@
     const busqueda = document.getElementById('busqueda');
 
     // Escapa el texto antes de ponerlo en la página (los nombres vienen de la base)
+    const formatoFecha = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    function fechaBonita(iso) {   // "2026-11-22" -> "22 nov 2026", igual que en la consola
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? new Date(iso + 'T00:00:00Z') : null;
+      return d ? formatoFecha.format(d).replace(/\./g, '').replace(/ de /g, ' ') : (iso || '—');
+    }
     const seguro = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     const etiquetas = (e) => e.enPeligro ? '<span class="etiqueta peligro">En peligro</span>' : '';
@@ -155,7 +171,7 @@
       try {
         const especies = await pedir('/api/publico/especies?buscar=' + encodeURIComponent(texto));
         if (especies.length === 0) {
-          resultados.innerHTML = '<li class="mensaje">No hay especies con ese nombre.</li>';
+          resultados.innerHTML = '<li class="mensaje">No encontramos esa especie. Prueba con el nombre común, por ejemplo oso o mirla.</li>';
           return;
         }
         resultados.innerHTML = especies.map(e => `
@@ -180,7 +196,7 @@
           : '<li>Sin variables definidas</li>';
         const departamentos = f.departamentos.length
           ? `<table><thead><tr><th>Departamento</th><th>Hallazgos</th><th>Última observación</th></tr></thead><tbody>
-              ${f.departamentos.map(d => `<tr><td>${seguro(d.departamento)}</td><td>${d.hallazgos}</td><td>${seguro(d.ultimaObservacion)}</td></tr>`).join('')}
+              ${[...f.departamentos].sort((a, b) => b.hallazgos - a.hallazgos).map(d => `<tr><td>${seguro(d.departamento)}</td><td>${d.hallazgos}</td><td>${seguro(fechaBonita(d.ultimaObservacion))}</td></tr>`).join('')}
              </tbody></table>`
           : '<p class="mensaje">Todavía no hay hallazgos registrados.</p>';
         detalle.innerHTML = `
