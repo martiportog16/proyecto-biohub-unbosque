@@ -83,7 +83,7 @@ Máquina de **2 núcleos y 7 GB de RAM**, con BioHub (10 contenedores) y k6 en l
 
 **Cómo leer la diferencia negativa de PR-13:** con el batch, el registro salió un poco **más rápido**. No es que el batch ayude: la primera fase ("sin batch") incluye el calentamiento de la JVM y de las conexiones. Lo que importa es que la diferencia está muy lejos del +1 000 ms permitido.
 
-## Límites de estas pruebas (decirlo en la sustentación)
+## Límites de estas pruebass
 
 - **Todo corre en un solo computador.** En producción, BioHub, la base y quien genera la carga estarían en máquinas distintas. Aquí compiten por la misma CPU, así que los resultados son **pesimistas**, no optimistas.
 - **El tráfico habitual (5 peticiones/s) es un supuesto del equipo** (P-12, S-06). El Instituto no dio cifras reales.
