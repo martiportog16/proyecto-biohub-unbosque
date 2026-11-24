@@ -34,7 +34,8 @@ SELECT e.id, 1,
    AND NOT EXISTS (SELECT 1 FROM definicion_ficha d WHERE d.especie_id = e.id);
 
 -- 2. Los hallazgos. Cada departamento tiene su propia "riqueza": unos ven muchas
---    especies y otros pocas, para que el índice de presión dé valores variados.
+--    especies y otros pocas; y en los últimos meses algunos pierden especies,
+--    para que el índice de presión (que compara con los meses anteriores) dé valores variados.
 CREATE TEMP TABLE semilla_especies AS
 SELECT row_number() OVER (ORDER BY id) - 1 AS n, id FROM especie WHERE nombre_cientifico LIKE 'Especie sembrada %';
 
@@ -47,13 +48,19 @@ SELECT row_number() OVER () - 1, d FROM unnest(ARRAY[
  'Tolima','Valle del Cauca','Vaupés','Vichada']) AS d;
 
 CREATE TEMP TABLE semilla AS
-SELECT g AS n,
-       (g % 33)                                                   AS depto,
-       -- cada departamento usa solo las primeras (10 + depto) especies, con algo de azar
-       (abs(hashint4(g)) % (10 + (g % 33) % 30))                  AS especie,
-       (date_trunc('month', now()) - interval '24 months')::date
-           + (abs(hashint4(g * 7)) % 730)                         AS fecha
-  FROM generate_series(1, :total) AS g;
+SELECT n, depto, fecha,
+       -- cada departamento usa solo sus primeras (10 + depto) especies, con algo de azar.
+       -- En los 2 últimos meses, 13 departamentos ven muchas menos especies (entre 30 % y 60 %
+       -- de lo normal): así el informe de presión muestra zonas con presión media y alta.
+       abs(hashint4(n)) % greatest(3, (riqueza * CASE
+            WHEN fecha >= (date_trunc('month', now()) - interval '2 months')::date AND depto % 5 IN (1, 3)
+            THEN 0.3 + (depto % 3) * 0.15 ELSE 1 END)::int)       AS especie
+  FROM (SELECT g AS n,
+               (g % 33)                                           AS depto,
+               10 + (g % 33) % 30                                 AS riqueza,
+               (date_trunc('month', now()) - interval '24 months')::date
+                   + (abs(hashint4(g * 7)) % 730)                 AS fecha
+          FROM generate_series(1, :total) AS g) AS base;
 
 INSERT INTO hallazgo (especie_id, ficha_especie_id, version_ficha, valores, fecha_observacion, departamento,
                       investigador_id, registrado_en)

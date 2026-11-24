@@ -148,6 +148,8 @@
       cifra(altos.length, 'con presión alta (≥ ' + ui.numero(UMBRAL_ALTA, 1) + ')'),
       cifra(informe.indices.length - conDatos.length, 'sin meses anteriores para comparar')));
 
+    cuerpo.append(seccionMapa(informe));
+
     const soloAltos = h('input', { type: 'checkbox', id: 'solo-altos' });
     const tabla = h('div', { class: 'tabla-envoltura' });
     const pintar = () => vaciar(tabla, tablaIndices(soloAltos.checked ? altos : ordenar(informe.indices)));
@@ -165,6 +167,91 @@
         h('li', null, 'E: especies distintas vistas en el departamento ese mes.'),
         h('li', null, 'B: promedio de E en los meses anteriores (hasta 3).')),
       h('p', { class: 'suave' }, 'Un índice de 0 significa que se vieron tantas especies como siempre o más. Uno de 1 significa que no se vio ninguna. Es un indicio para revisar la zona, no una prueba de deforestación.')));
+  }
+
+  /* ---------- Mapa de presión: los mismos datos de la tabla, sobre Colombia ---------- */
+
+  // Escalas: índice (claro = sin presión, rojo = presión alta) y especies vistas (más verde = más especies)
+  const ESCALA_INDICE = [
+    { hasta: 0, color: '#dcebe0', texto: '0 (sin presión)' },
+    { hasta: 0.25, color: '#f3e0a6', texto: 'hasta 0,25' },
+    { hasta: UMBRAL_ALTA, color: '#eeae6c', texto: 'hasta ' + ui.numero(UMBRAL_ALTA, 2) },
+    { hasta: 0.75, color: '#d9694f', texto: 'alta, hasta 0,75' },
+    { hasta: Infinity, color: '#a92f25', texto: 'alta, más de 0,75' }
+  ];
+  const ESCALA_ESPECIES = ['#e3f0e7', '#b9dbc4', '#82bf98', '#4a9a6b', '#1c6e4c'];
+  const SIN_DATOS = '#c9cfca';
+  const COLOMBIA = [[-4.3, -79.1], [12.6, -66.8]];   // sin San Andrés: si no, el país se ve diminuto
+  let geoDepartamentos = null;
+
+  function seccionMapa(informe) {
+    const porNombre = new Map(informe.indices.map((i) => [i.departamento, i]));
+    const maxEspecies = Math.max(1, ...informe.indices.map((i) => i.especiesEnElMes || 0));
+    const lienzo = h('div', { class: 'mapa mapa-informe', role: 'img',
+      'aria-label': 'Mapa de Colombia coloreado por departamento. Los mismos datos están en la tabla de abajo.' });
+    const leyenda = h('ul', { class: 'leyenda' });
+    const opcion = (valor, texto, marcada) => h('label', { class: 'opcion-mapa' },
+      h('input', { type: 'radio', name: 'medida-mapa', value: valor, checked: marcada }), texto);
+    const selector = h('div', { class: 'selector-mapa', role: 'radiogroup', 'aria-label': 'Qué colorear' },
+      opcion('indice', 'Índice de presión', true), opcion('especies', 'Especies vistas este mes', false));
+    let medida = 'indice';
+    let capa = null;
+
+    const colorDe = (i) => {
+      if (!i || i.sinDatos && medida === 'indice') return SIN_DATOS;
+      if (medida === 'especies') {
+        const paso = Math.min(4, Math.floor((i.especiesEnElMes / maxEspecies) * 5));
+        return ESCALA_ESPECIES[paso];
+      }
+      return ESCALA_INDICE.find((e) => i.valor <= e.hasta).color;
+    };
+    const textoDe = (nombre, i) => {
+      if (!i) return nombre + ': sin hallazgos este mes';
+      if (medida === 'especies') return nombre + ': ' + ui.numero(i.especiesEnElMes) + ' especies vistas';
+      if (i.sinDatos) return nombre + ': sin meses anteriores para comparar';
+      return nombre + ': índice ' + ui.numero(i.valor, 2) + (i.valor >= UMBRAL_ALTA ? ' (presión alta)' : '');
+    };
+    const pintarLeyenda = () => {
+      const filas = medida === 'indice'
+        ? ESCALA_INDICE.map((e) => [e.color, e.texto]).concat([[SIN_DATOS, 'sin datos']])
+        : [[ESCALA_ESPECIES[0], 'pocas especies'], [ESCALA_ESPECIES[2], ''], [ESCALA_ESPECIES[4], 'más especies (' + ui.numero(maxEspecies) + ')']];
+      vaciar(leyenda, filas.map(([color, texto]) => h('li', null, h('span', { class: 'muestra', style: 'background:' + color }), texto)));
+    };
+    const repintar = () => {
+      if (capa) capa.setStyle((f) => estilo(f));
+      if (capa) capa.eachLayer((l) => { const n = l.feature.properties.nombre; l.setTooltipContent(h('span', null, textoDe(n, porNombre.get(n)))); });
+      pintarLeyenda();
+    };
+    const estilo = (f) => ({ fillColor: colorDe(porNombre.get(f.properties.nombre)), fillOpacity: 0.92, color: '#ffffff', weight: 1 });
+    selector.addEventListener('change', (ev) => { medida = ev.target.value; repintar(); });
+
+    const seccion = h('section', { class: 'tarjeta' },
+      h('div', { class: 'acciones', style: 'margin-top:0;justify-content:space-between' },
+        h('h2', { style: 'margin:0' }, 'Mapa de presión'), selector),
+      lienzo, leyenda,
+      h('p', { class: 'suave pequeno' }, 'Pase el cursor sobre un departamento para ver su valor. San Andrés y Providencia está en la tabla.'));
+
+    // Leaflet necesita el lienzo ya en la página para medirlo
+    requestAnimationFrame(async () => {
+      if (typeof L === 'undefined') { lienzo.replaceWith(ui.mensaje('aviso', 'No se pudo cargar el mapa. Los datos están en la tabla.')); return; }
+      const mapa = L.map(lienzo, { attributionControl: false, scrollWheelZoom: false, zoomSnap: 0.25 });
+      mapa.fitBounds(COLOMBIA, { padding: [6, 6] });
+      try {
+        if (!geoDepartamentos) geoDepartamentos = await (await fetch('datos/colombia-departamentos.geojson')).json();
+        capa = L.geoJSON(geoDepartamentos, {
+          style: estilo,
+          onEachFeature: (f, l) => {
+            l.bindTooltip(h('span', null, textoDe(f.properties.nombre, porNombre.get(f.properties.nombre))), { sticky: true });
+            l.on('mouseover', () => l.setStyle({ weight: 2.5, color: '#0e3b2e' }));
+            l.on('mouseout', () => capa.resetStyle(l));
+          }
+        }).addTo(mapa);
+        pintarLeyenda();
+      } catch (e) {
+        lienzo.replaceWith(ui.mensaje('aviso', 'No se pudo cargar el mapa. Los datos están en la tabla.'));
+      }
+    });
+    return seccion;
   }
 
   function ordenar(indices) {
